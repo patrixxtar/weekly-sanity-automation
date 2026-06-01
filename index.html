@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TomTimThe.Cat Hub</title>
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: #151f32;
+            --card-hover-bg: #1e293b;
+            --text-color: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-color: #38bdf8;
+            --hover-color: #0ea5e9;
+            --border-color: rgba(51, 65, 85, 0.5);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 2rem 0;
+            box-sizing: border-box;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        header h1 {
+            font-size: 2.75rem;
+            font-weight: 800;
+            letter-spacing: -0.05em;
+            margin: 0 0 0.5rem 0;
+            color: var(--text-color);
+            background: linear-gradient(to right, #ffffff, var(--accent-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        header p {
+            color: var(--text-muted);
+            font-size: 1.15rem;
+            margin: 0;
+            font-weight: 400;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1.75rem;
+            width: 100%;
+            max-width: 1200px;
+            padding: 0 1.5rem;
+            box-sizing: border-box;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.75rem;
+            text-align: left;
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.3);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            background-color: var(--card-hover-bg);
+            border-color: rgba(56, 189, 248, 0.4);
+            box-shadow: 0 12px 30px -4px rgba(0, 0, 0, 0.5), 0 0 15px -3px rgba(56, 189, 248, 0.1);
+        }
+
+        .card h2 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-top: 0;
+            margin-bottom: 2rem;
+            color: #ffffff;
+        }
+
+        .cta-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .cta-btn {
+            display: inline-block;
+            background-color: var(--accent-color);
+            color: #0b0f19;
+            text-decoration: none;
+            padding: 0.8rem 1.2rem;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            text-align: center;
+            transition: background-color 0.2s, transform 0.1s;
+            cursor: pointer;
+        }
+
+        .cta-btn:hover {
+            background-color: var(--hover-color);
+        }
+
+        .cta-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* Secondary variant styling specifically for features like Splash */
+        .cta-btn.secondary {
+            background-color: transparent;
+            color: var(--accent-color);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+        }
+
+        .cta-btn.secondary:hover {
+            background-color: rgba(56, 189, 248, 0.08);
+            border-color: var(--accent-color);
+            color: #ffffff;
+        }
+
+        .info-btn {
+            display: inline-block;
+            background-color: transparent;
+            color: var(--text-muted);
+            border: none;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-align: center;
+            transition: all 0.2s;
+            cursor: pointer;
+            margin-top: 0.25rem;
+        }
+
+        .info-btn:hover {
+            color: var(--text-color);
+            background-color: rgba(148, 163, 184, 0.08);
+        }
+
+        /* --- LIGHTBOX MODAL STYLES --- */
+        .lightbox-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(7, 10, 19, 0.8);
+            backdrop-filter: blur(12px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 1000;
+        }
+
+        .lightbox-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .lightbox-content {
+            background-color: #111827;
+            border: 1px solid rgba(71, 85, 105, 0.4);
+            border-radius: 20px;
+            padding: 2.5rem;
+            max-width: 540px;
+            width: 90%;
+            position: relative;
+            box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7);
+            transform: scale(0.95);
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .lightbox-overlay.active .lightbox-content {
+            transform: scale(1);
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 1.25rem;
+            right: 1.5rem;
+            font-size: 1.75rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: color 0.2s, transform 0.2s;
+            background: none;
+            border: none;
+            line-height: 1;
+        }
+
+        .close-btn:hover {
+            color: var(--text-color);
+            transform: rotate(90deg);
+        }
+
+        .lightbox-body h2 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-top: 0;
+            margin-bottom: 0.75rem;
+        }
+
+        .lightbox-body h3 {
+            color: #cbd5e1;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .lightbox-body p {
+            color: #94a3b8;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+
+        .lightbox-body ol {
+            color: #cbd5e1;
+            padding-left: 1.25rem;
+            margin: 0 0 1.5rem 0;
+        }
+
+        .lightbox-body ol li {
+            margin-bottom: 0.6rem;
+            line-height: 1.6;
+            font-size: 0.95rem;
+        }
+
+        .lightbox-body details {
+            background-color: rgba(30, 41, 59, 0.4);
+            border: 1px solid rgba(53, 67, 88, 0.5);
+            border-radius: 10px;
+            margin-bottom: 0.75rem;
+            overflow: hidden;
+            transition: all 0.2s;
+        }
+
+        .lightbox-body details[open] {
+            border-color: rgba(56, 189, 248, 0.3);
+            background-color: rgba(15, 23, 42, 0.6);
+        }
+
+        .lightbox-body summary {
+            padding: 0.85rem 1.25rem;
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: #f1f5f9;
+            cursor: pointer;
+            outline: none;
+            user-select: none;
+            transition: color 0.2s;
+        }
+
+        .lightbox-body summary:hover {
+            color: var(--accent-color);
+        }
+
+        .lightbox-body .details-content {
+            padding: 0 1.25rem 1.25rem 1.25rem;
+            border-top: 1px solid rgba(53, 67, 88, 0.3);
+            padding-top: 1rem;
+        }
+
+        .lightbox-body .device-tag {
+            font-size: 0.85rem;
+            color: var(--accent-color);
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>TomTimThe.Cat</h1>
+        <p>Select a service to launch</p>
+    </header>
+
+    <div class="container">
+        <!-- Transmission -->
+        <div class="card">
+            <h2>Transmission</h2>
+            <div class="cta-group">
+                <a href="https://transmission.tomtimthe.cat" class="cta-btn" target="_blank">Open Torrents</a>
+                <button class="info-btn" onclick="openLightbox('transmission-info')">More Info</button>
+            </div>
+        </div>
+
+        <!-- Jellyfin -->
+        <div class="card">
+            <h2>Jellyfin</h2>
+            <div class="cta-group">
+                <a href="https://jellyfin.tomtimthe.cat" class="cta-btn" target="_blank">Stream Movies</a>
+                <button class="info-btn" onclick="openLightbox('jellyfin-info')">More Info</button>
+            </div>
+        </div>
+
+        <!-- n8n -->
+        <div class="card">
+            <h2>n8n Automation</h2>
+            <div class="cta-group">
+                <a href="https://n8n.tomtimthe.cat" class="cta-btn" target="_blank">Open Workflows</a>
+                <button class="info-btn" onclick="openLightbox('n8n-info')">More Info</button>
+            </div>
+        </div>
+
+        <!-- Pikaraoke -->
+        <div class="card">
+            <h2>Pikaraoke</h2>
+            <div class="cta-group">
+                <a href="https://pikaraoke.tomtimthe.cat" class="cta-btn" target="_blank">Start Party</a>
+                <a href="https://pikaraoke.tomtimthe.cat/splash" class="cta-btn secondary" target="_blank">Splash</a>
+                <button class="info-btn" onclick="openLightbox('pikaraoke-info')">More Info</button>
+            </div>
+        </div>
+
+        <!-- Code-Server -->
+        <div class="card">
+            <h2>Code-Server</h2>
+            <div class="cta-group">
+                <a href="https://code.tomtimthe.cat" class="cta-btn" target="_blank">Open Editor</a>
+                <button class="info-btn" onclick="openLightbox('code-info')">More Info</button>
+            </div>
+        </div>
+
+        <!-- AdGuard Home -->
+        <div class="card">
+            <h2>AdGuard Home</h2>
+            <div class="cta-group">
+                <a href="https://adguard.tomtimthe.cat" class="cta-btn" target="_blank">DNS Controls</a>
+                <button class="info-btn" onclick="openLightbox('adguard-info')">More Info</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- --- SINGLE REUSABLE LIGHTBOX STRUCTURE --- -->
+    <div id="info-lightbox" class="lightbox-overlay" onclick="closeLightbox(event)">
+        <div class="lightbox-content">
+            <button class="close-btn" onclick="closeLightbox(event, true)">&times;</button>
+            <div id="lightbox-text" class="lightbox-body">
+                <!-- Target for dynamic injected code strings -->
+            </div>
+        </div>
+    </div>
+
+    <!-- --- DATA STORAGE FOR DETAILS --- -->
+    <div id="info-data" style="display: none;">
+        <div id="transmission-info">
+            <h2>About Transmission</h2>
+            <h3>How to add download movies:</h3>
+            <ol>
+                <li>Login to the GUI (credentials sent on discord)</li>
+                <li>Copy any torrent download links</li>
+                <li>On Transmission GUI, click Add +</li>
+                <li>Enter your movie download link, hit OK</li>
+                <li>Once done, movie will be automatically added to Jellyfin</li>
+            </ol>
+        </div>
+
+        <div id="jellyfin-info">
+            <h2>About Jellyfin</h2>
+            <p>Jellyfin is a volunteer-built media solution that puts you in control of your entertainment. Stream movies, TV shows, and music directly from your server setup to any device without trackers.</p>
+
+            <!-- Collapsible Guide 1 -->
+            <details>
+                <summary>How to add subtitles</summary>
+                <div class="details-content">
+                    <div class="device-tag">For PC and Mobile</div>
+                    <ol>
+                        <li>Select the movie</li>
+                        <li>Click More options &gt; Edit subtitles</li>
+                        <li>Choose your language then hit Search icon</li>
+                        <li>Look for "Perfect Match" tags on the result then tap Download</li>
+                        <li>Once downloaded, movie should have subtitles added</li>
+                    </ol>
+                </div>
+            </details>
+
+            <!-- Collapsible Guide 2 -->
+            <details>
+                <summary>How to edit subtitle</summary>
+                <div class="details-content">
+                    <div class="device-tag">For PC and Mobile</div>
+                    <ol>
+                        <li>Go to Settings by clicking the user icon</li>
+                        <li>Select Subtitles</li>
+                        <li>Look for "Subtitle Appearance"</li>
+                        <li>Modify values as needed</li>
+                        <li>Click Save</li>
+                    </ol>
+                </div>
+            </details>
+        </div>
+
+        <div id="n8n-info">
+            <h2>About n8n</h2>
+            <p>n8n is an extendable workflow automation tool. It allows you to build custom node-based automations, connect different apps, and parse webhook or JSON payloads effortlessly.</p>
+        </div>
+
+        <div id="pikaraoke-info">
+            <h2>About PiKaraoke</h2>
+            <p>PiKaraoke turns your local environment into a full hosting platform for karaoke parties. Queue up your favorite tracks, manage songs from your smartphone, and start singing!</p>
+        </div>
+
+        <div id="openclaw-info">
+            <h2>About OpenClaw</h2>
+            <p>OpenClaw is an open-source modern engine implementation for Captain Claw (1997), recreating the classic platforming experience flawlessly natively on modern systems.</p>
+        </div>
+
+        <div id="code-info">
+            <h2>About Code-Server</h2>
+            <p>Code-Server runs VS Code in the cloud. Write code, access a built-in terminal, and manage your workspace directly through any browser window.</p>
+            <details>
+                <summary>Usage Instructions</summary>
+                <div class="details-content">
+                    <ol>
+                        <li>Click "Open Editor" and enter your workspace password.</li>
+                        <li>The environment points directly to your home files at <code>/home/scarlett</code>.</li>
+                        <li>You can edit configs or launch containers from the browser terminal.</li>
+                    </ol>
+                </div>
+            </details>
+        </div>
+
+        <div id="adguard-info">
+            <h2>About AdGuard Home</h2>
+            <p>AdGuard Home acts as a private network ad and tracking domain filtering node. It blocks ad trackers at the network level before they load.</p>
+            <details>
+                <summary>Usage Instructions</summary>
+                <div class="details-content">
+                    <ol>
+                        <li>Click "DNS Controls" to view the statistics block panel.</li>
+                        <li>Configure your remote client devices to look at this server IP for DNS resolution.</li>
+                        <li>Ensure your home IP is listed in "Allowed Clients" to secure backend routing.</li>
+                    </ol>
+                </div>
+            </details>
+        </div>
+    </div>
+
+    <!-- --- LIGHTBOX CONTROLLER SCRIPT --- -->
+    <script>
+        const lightbox = document.getElementById('info-lightbox');
+        const lightboxText = document.getElementById('lightbox-text');
+
+        function openLightbox(contentId) {
+            const sourceHTML = document.getElementById(contentId).innerHTML;
+            lightboxText.innerHTML = sourceHTML;
+            lightbox.classList.add('active');
+        }
+
+        function closeLightbox(event, force = false) {
+            if (force || event.target === lightbox) {
+                lightbox.classList.remove('active');
+            }
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && lightbox.classList.contains('active')) {
+                lightbox.classList.remove('active');
+            }
+        });
+    </script>
+</body>
+</html>
