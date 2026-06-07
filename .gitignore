@@ -1,0 +1,11 @@
+env/
+venv/
+__pycache__/
+*.pyc
+
+# Ignore IDE settings
+.vscode/
+
+# Ignore automated test video artifacts
+**/*.mp4
+env/

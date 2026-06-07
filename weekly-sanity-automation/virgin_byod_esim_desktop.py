@@ -272,21 +272,23 @@ try:
     print("--- STEP 4: CART REVIEW & CHECKOUT START ---")
     try:
         WebDriverWait(driver, 20).until(
-            EC.any_of(
-                EC.invisibility_of_element_located((By.ID, "brfLoadingIndicator")),
-                EC.invisibility_of_element_located((By.XPATH, "//*[contains(@class, 'vrui-animate-icons-flipper')] | //*[contains(text(), 'Loading shopping cart.')]"))
-            )
+        EC.all_of(
+            EC.invisibility_of_element_located((By.ID, "brfLoadingIndicator")),
+            EC.invisibility_of_element_located((By.XPATH, "//*[contains(@class, 'vrui-animate-icons-flipper')]")),
+            EC.invisibility_of_element_located((By.XPATH, "//*[contains(text(), 'Loading shopping cart.')]")))
         )
-        checkout_btn = WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.ID, "proceed-to-checkout-button")))
+        checkout_locator = (By.ID, "proceed-to-checkout-button")
+        checkout_btn = WebDriverWait(driver, 20).until(EC.element_to_be_clickable(checkout_locator))
 
         try:
             footer = driver.find_element(By.XPATH, "//nav[@aria-label='Privacy, security and legal'] | //nav[contains(@class, 'legal-links')]")
             driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'end'});", footer)
+            time.sleep(1)
         except Exception:
             driver.execute_script("window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'});")
         
-        time.sleep(3.5)
-        nav.stable_click(((By.ID, "proceed-to-checkout-button")), timeout=20)
+        time.sleep(2)
+        nav.stable_click(checkout_locator, timeout=20)
         print("Successfully proceeded to checkout.")
     except Exception as e:
         print(f"Checkout transition failed: {e}")

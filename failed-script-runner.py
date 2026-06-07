@@ -41,9 +41,9 @@ def main():
     print("--- 🔄 Failed Scripts Recovery Runner ---")
     
     # The main runner will overwrite the values below dynamically
-    platform = "DESKTOP"
+    platform = "TABLET"
     target_folder = "weekly-sanity-automation"
-    failed_scripts = []
+    failed_scripts = ['virgin_byod_esim_tablet.py', 'virgin_byod_psim_tablet.py']
     
     print(f"Platform Context: {platform}")
     

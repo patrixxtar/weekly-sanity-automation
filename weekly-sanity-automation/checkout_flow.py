@@ -240,14 +240,30 @@ class CheckoutFlow:
             month_select = Select(month_element)
             month_select.select_by_index(len(month_select.options) - 1)
         else:
-            # 1. Open the dropdown menu
-            self.stable_click((By.ID, "CreditCard_ExpirationDataMM"))
+            # Action 1: Physically move to and click the Month Dropdown to open it
+            actions = ActionChains(self.driver)
+            actions.move_to_element(month_element).click().perform()
+            time.sleep(1) # Wait for animation expansion
             
-            # 2. Select December
-            self.stable_click((By.ID, "CreditCard_ExpirationDataMM-12"))
-            print("Month selected via stable_click.")
+            # Action 2: Locate December item and physically click it with the mouse cursor
+            target_month = WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located((By.ID, "CreditCard_ExpirationDataMM-12"))
+            )
 
-        time.sleep(1) 
+            try:
+                actions.reset_actions()
+                actions.move_to_element(target_month).click().perform()
+                print("Month selected via ActionChains manual mouse emulation.")
+            except Exception as e:
+                print(f"ActionChains failed/timed out ({type(e).__name__}). Applying tablet JS fallback...")
+                self.driver.execute_script("""
+                arguments[0].scrollIntoView({block: 'center'});
+                arguments[0].click();
+                """, target_month)
+                print("Month selected via JS fallback execution.")
+
+
+        time.sleep(1.5) # Clean transition gap before processing next menu
 
         # --- YEAR DROPDOWN ---
         year_element = self.driver.find_element(By.ID, "CreditCard_ExpirationDateYY")
@@ -255,12 +271,18 @@ class CheckoutFlow:
             year_select = Select(year_element)
             year_select.select_by_index(len(year_select.options) - 1)
         else:
-            # 1. Open the dropdown menu
-            self.stable_click((By.ID, "CreditCard_ExpirationDateYY"))
+            # Action 1: Physically move to and click the Year Dropdown to open it
+            actions = ActionChains(self.driver)
+            actions.move_to_element(year_element).click().perform()
+            time.sleep(1)
             
-            # 2. Select 2035
-            self.stable_click((By.ID, "CreditCard_ExpirationDateYY-2035"))
-            print("Year selected via stable_click.")
+            # Action 2: Locate 2035 item and physically click it with the mouse cursor
+            target_year = WebDriverWait(self.driver, 10).until(
+                EC.visibility_of_element_located((By.ID, "CreditCard_ExpirationDateYY-2035"))
+            )
+            actions.reset_actions()
+            actions.move_to_element(target_year).click().perform()
+            print("Year selected via ActionChains manual mouse emulation.")
                 
         time.sleep(2)
 
