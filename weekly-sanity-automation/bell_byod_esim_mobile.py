@@ -69,6 +69,7 @@ try:
         options.add_experimental_option(key, value)
 
     driver = webdriver.Chrome(options=options)
+    wait = WebDriverWait(driver, 30)
     
     # --- 4. INITIALIZE NAV & RECORDING ---
     nav = GlobalNav(driver)
@@ -100,7 +101,7 @@ try:
     
     try:
         # 1. Find the card and the header
-        plan_card = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, plan_card_xpath)))
+        plan_card = wait.until(EC.presence_of_element_located((By.XPATH, plan_card_xpath)))
         plan_header = plan_card.find_element(By.TAG_NAME, "h3")
         
         # 2. First Stage: Scroll the header into view to "anchor" the plan
@@ -132,10 +133,10 @@ try:
         print("Clicking Mobility only CTA")
         
         try:
-            WebDriverWait(driver, 20).until(
+            wait.until(
                 EC.invisibility_of_element_located((By.XPATH, "//div[contains(text(), 'Loading')]"))
             )
-            WebDriverWait(driver, 20).until(
+            wait.until(
                 EC.invisibility_of_element_located((By.XPATH, "//div[contains(text(), 'Determining')]"))
             )
         except Exception as e:
@@ -145,12 +146,12 @@ try:
 
     # --- STEP 3: DYNAMIC SIM ASSIGNMENT ---
     print("--- STEP 3: DYNAMIC SIM ASSIGNMENT ---")
-    WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.ID, "imei-number")))
+    wait.until(EC.presence_of_element_located((By.ID, "imei-number")))
     time.sleep(2) 
     nav.start_popup_checker()
 
     try:
-        edit_plan_cta = WebDriverWait(driver, 15).until(
+        edit_plan_cta = wait.until(
             EC.element_to_be_clickable((By.ID, "editBtnRatePlanSection_SBPage"))
         )
         nav.stable_click(edit_plan_cta, scroll=True)
@@ -158,7 +159,7 @@ try:
         time.sleep(1.5)
 
         # 1. Target the Alternative Plan
-        alt_plan_radio = WebDriverWait(driver, 10).until(
+        alt_plan_radio = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//div[@id='tabpanel-pills-data-allotment']//h3[not(contains(text(), 'Ultra'))]/ancestor::div[contains(@class, 'graphical_ctrl_container')]"))
         )
         # Scroll to alternate first to bring it into the viewport context
@@ -169,7 +170,7 @@ try:
         time.sleep(2.0)
 
         # 2. Target the Original (Ultra) Plan
-        ultra_plan_radio = WebDriverWait(driver, 10).until(
+        ultra_plan_radio = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//div[@id='tabpanel-pills-data-allotment']//h3[contains(text(), 'Ultra')]/ancestor::div[contains(@class, 'graphical_ctrl_container')]"))
         )
         # Scroll back to original plan to anchor the selection process
@@ -180,7 +181,7 @@ try:
         time.sleep(1.5)
 
         # 3. Final Confirmation
-        next_step_btn = WebDriverWait(driver, 10).until(
+        next_step_btn = wait.until(
             EC.element_to_be_clickable((By.ID, "next-step-button-1"))
         )
         # Final scroll to ensure button isn't hidden behind a sticky header/footer
@@ -192,7 +193,7 @@ try:
     except Exception as e:
         print(f"Warning: Failed path execution variations adjusting plan configurations: {e}")
 
-    WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.ID, "imei-number")))
+    wait.until(EC.presence_of_element_located((By.ID, "imei-number")))
     time.sleep(2) 
 
     try:
@@ -202,22 +203,22 @@ try:
             time.sleep(1) # Open modal
             
             # Click Android tab
-            android_tab = WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.ID, "android")))
+            android_tab = wait.until(EC.element_to_be_clickable((By.ID, "android")))
             nav.stable_click(android_tab)
             time.sleep(1)
             
             # Click iOS tab
-            ios_tab = WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.ID, "iOS")))
+            ios_tab = wait.until(EC.element_to_be_clickable((By.ID, "iOS")))
             nav.stable_click(ios_tab)
             time.sleep(1)
             
             # Close the modal
-            close_btn = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, "closeIMEIModalButton")))
+            close_btn = wait.until(EC.element_to_be_clickable((By.ID, "closeIMEIModalButton")))
             nav.stable_click(close_btn)
     except Exception as e:
         print(f"Modal interaction failed: {e}")
 
-    WebDriverWait(driver, 10).until(EC.invisibility_of_element((By.ID, "closeIMEIModalButton")))
+    wait.until(EC.invisibility_of_element((By.ID, "closeIMEIModalButton")))
     imei_input = driver.find_element(By.ID, "imei-number")
     
     try:
@@ -229,9 +230,9 @@ try:
         print(f"Failed to enter IMEI: {e}")
 
     print("Waiting for validation...")
-    WebDriverWait(driver, 20).until(EC.visibility_of_element_located((By.CLASS_NAME, "icon-checkmark")))
+    wait.until(EC.visibility_of_element_located((By.CLASS_NAME, "icon-checkmark")))
     
-    final_next_btn = WebDriverWait(driver, 15).until(EC.element_to_be_clickable((By.ID, "addToCartCTA")))
+    final_next_btn = wait.until(EC.element_to_be_clickable((By.ID, "addToCartCTA")))
     driver.execute_script("arguments[0].click();", final_next_btn)
 
     # --- STEP 4: SUBSCRIPTION & LIGHTBOX HANDLING ---
@@ -242,13 +243,13 @@ try:
         print(f"Continue button failed: {e}")
 
     try:
-        WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.ID, "modal-addition-offers-title")))
+        wait.until(EC.visibility_of_element_located((By.ID, "modal-addition-offers-title")))
         nav.stable_click((By.ID, "eligible_offers_lightbox"))
     except TimeoutException:
         print("No lightbox detected. Proceeding.")
         
     try:
-        WebDriverWait(driver, 15).until(
+        wait.until(
             EC.presence_of_element_located((By.XPATH, "//*[contains(text(), 'Order summary') or contains(text(), 'Cart')]"))
         )
         print("Successfully reached final Cart page.")
@@ -260,8 +261,8 @@ try:
     # --- STEP 5: CART REVIEW & CHECKOUT START ---
     print("--- STEP 5: CART REVIEW & CHECKOUT START ---")
     try:
-        WebDriverWait(driver, 20).until(EC.invisibility_of_element_located((By.ID, "brfLoadingIndicator")))
-        checkout_btn = WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.ID, "next-step-button-undefined")))
+        wait.until(EC.invisibility_of_element_located((By.ID, "brfLoadingIndicator")))
+        checkout_btn = wait.until(EC.element_to_be_clickable((By.ID, "next-step-button-undefined")))
         time.sleep(2)
 
         try:

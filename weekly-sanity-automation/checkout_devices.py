@@ -20,11 +20,17 @@ class MobileCheckout(CheckoutFlow):
     pass
 
 DEVICE_PROFILES = {
+
+    "desktop": {
+        "display_size": (2560, 1440),
+        "mobile_emulation": None
+    },
+
     "iphone_15_pro_max": {
-        "display_size": (393, 852),  # iOS CSS Viewport
+        "display_size": (394, 852),  # iOS CSS Viewport
         "mobile_emulation": {
             "deviceMetrics": {
-                "width": 393,
+                "width": 394,
                 "height": 852,
                 "pixelRatio": 3.0,
                 "touch": True
@@ -32,6 +38,7 @@ DEVICE_PROFILES = {
             "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1"
         }
     },
+
     "galaxy_s24_fe": {
         "display_size": (360, 780),  # Android CSS Viewport
         "mobile_emulation": {
@@ -44,6 +51,7 @@ DEVICE_PROFILES = {
             "userAgent": "Mozilla/5.0 (Linux; Android 14; SM-S721B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36"
         }
     },
+
     "tablet_mobile_ui": {
         "display_size": (820, 1180),  # iPad Air Viewport
         "mobile_emulation": {
@@ -57,6 +65,7 @@ DEVICE_PROFILES = {
             "userAgent": "Mozilla/5.0 (iPad; CPU OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1"
         }
     },
+
     "tablet_desktop_ui": {
         "display_size": (1366, 1024),  # iPad Pro 12.9" Viewport
         "mobile_emulation": {

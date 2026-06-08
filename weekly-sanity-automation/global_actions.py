@@ -12,7 +12,7 @@ class GlobalNav:
     def __init__(self, driver):
         # We store the driver inside the instance so all methods can see it
         self.driver = driver
-        self.wait = WebDriverWait(self.driver, 15)
+        self.wait = WebDriverWait(self.driver, 20)
 
     def start_recording(self, display_num: int, display_size: tuple, file_name: str):
         """Verifies environment folders and spins up the background FFmpeg recording layer."""
@@ -84,17 +84,17 @@ class GlobalNav:
         try:
             if is_bell:
                 # 1. Handle potential Lightbox
-                WebDriverWait(self.driver, 3).until(
+                self.wait.until(
                     EC.visibility_of_element_located((By.ID, "connector"))
                 )
 
                 try:
-                    lightbox_close = WebDriverWait(self.driver, 3).until(
+                    lightbox_close = self.wait.until(
                         EC.element_to_be_clickable((By.ID, "close-lightbox"))
                     )
                     time.sleep(1)
                     lightbox_close.click()
-                    WebDriverWait(self.driver, 1).until(EC.staleness_of(lightbox_close))
+                    self.wait.until(EC.staleness_of(lightbox_close))
                     print("Lightbox dismissed instantly.")
                 except:
                     print("No lightbox detected, proceeding.")
@@ -110,10 +110,10 @@ class GlobalNav:
             
             elif is_virgin:
                 try:
-                    WebDriverWait(self.driver, 10).until(
+                    self.wait.until(
                         EC.visibility_of_element_located((By.ID, "roaming-lightbox-fifa"))
                     )
-                    lightbox_close = WebDriverWait(self.driver, 5).until(
+                    lightbox_close = self.wait.until(
                         EC.element_to_be_clickable((By.XPATH, "//*[@id='close-lightbox'] | //a[@title='Close' and contains(@class, 'closeBtn')]"))
                     )
                     self.driver.execute_script("arguments[0].click();", lightbox_close)
@@ -159,7 +159,7 @@ class GlobalNav:
         while not self._stop_popup_loop:
             try:
                 # 1. Quickly poll to see if either element is present via the lambda
-                target_btn = WebDriverWait(self.driver, 1.5).until(
+                target_btn = self.wait.until(
                     lambda d: (
                         d.find_element(By.ID, "ujet-widget").shadow_root.find_element(By.CLASS_NAME, "ujet-minimize")
                         if d.find_elements(By.ID, "ujet-widget") else None

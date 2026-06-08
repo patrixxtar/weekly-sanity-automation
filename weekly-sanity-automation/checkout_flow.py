@@ -43,7 +43,7 @@ class CheckoutFlow:
         
     def _user_info(self):
         def fill_field(field_id, value):
-            element = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.ID, field_id)))
+            element = self.wait.until(EC.visibility_of_element_located((By.ID, field_id)))
             element.clear()
             element.send_keys(value)
             self.driver.execute_script("arguments[0].dispatchEvent(new Event('blur'));", element)
@@ -63,7 +63,7 @@ class CheckoutFlow:
         address_input.send_keys(self.config["address"])
         
 
-        WebDriverWait(self.driver, 20).until(EC.visibility_of_element_located((By.CSS_SELECTOR, ".pca.pcalist .pcaitem")))# Send ENTER to trigger the address selection/validation
+        self.wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, ".pca.pcalist .pcaitem")))# Send ENTER to trigger the address selection/validation
         time.sleep(1) # Brief pause before pressing Enter
         address_input.send_keys(Keys.ENTER)
         print("Address entered and ENTER key sent.")
@@ -83,7 +83,7 @@ class CheckoutFlow:
         try:
             # Wait for the modal title to be visible to ensure the modal is active
             modal_title_xpath = "//*[@id='modal-confirm-information-title'] | //h2[contains(text(), 'Confirm information')]"
-            WebDriverWait(self.driver, 10).until(
+            self.wait.until(
                 EC.visibility_of_element_located((By.XPATH, modal_title_xpath))
             )
 
@@ -97,7 +97,7 @@ class CheckoutFlow:
             print("Confirmed information modal.")
             
             # Wait for the modal to disappear
-            WebDriverWait(self.driver, 10).until(
+            self.wait.until(
                 EC.invisibility_of_element_located((By.XPATH, modal_title_xpath))
             )
             
@@ -109,7 +109,7 @@ class CheckoutFlow:
         print("--- CHECKOUT STEP 2: NUMBER SETUP ---")
 
         # 1. Select 'Select a new number'
-        new_number_label = WebDriverWait(self.driver, 15).until(
+        new_number_label = self.wait.until(
             EC.element_to_be_clickable((By.XPATH, "//*[contains(text(), 'Select a new number')]"))
         )
         self.nav.stable_click(new_number_label)
@@ -122,7 +122,7 @@ class CheckoutFlow:
 
         # 2. Select the first available phone number by clicking its label
         # The label associated with "current-option2-0"
-        phone_label = WebDriverWait(self.driver, 15).until(
+        phone_label = self.wait.until(
             EC.element_to_be_clickable((By.XPATH, "//label[@for='current-option2-0'] | //label[@for='phoneNumber-1']"))
         )
         self.nav.stable_click(phone_label)
@@ -135,14 +135,14 @@ class CheckoutFlow:
             try:
                 # Giving a brief pause for the DOM/animation to settle before looking for the 2nd CTA
                 time.sleep(1.5)
-                virgin_continue = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.ID, "new-number-continue-button")))
+                virgin_continue = self.wait.until(EC.element_to_be_clickable((By.ID, "new-number-continue-button")))
                 self.nav.stable_click(virgin_continue)
                 print("Clicked first 'Continue' button for Virgin Plus.")
             except Exception as e:
                 print(f"Failed to click Virgin's first continue button: {e}")
 
         # 3. Continue button
-        continue_btn = WebDriverWait(self.driver, 15).until(
+        continue_btn = self.wait.until(
             EC.element_to_be_clickable((By.XPATH, 
                 "//*[@id='ContinueToPaymentInfo'] | //*[@id='linkToContinue']"
             ))
@@ -160,8 +160,7 @@ class CheckoutFlow:
         
         # 2. Wait for the button to appear in the DOM
         try:
-            wait = WebDriverWait(self.driver, 20)
-            btn = wait.until(EC.presence_of_element_located((By.XPATH, shipping_xpath)))
+            btn = self.wait.until(EC.presence_of_element_located((By.XPATH, shipping_xpath)))
             
             # 3. If found, scroll it into view and click
             self.nav.stable_click(btn)        
@@ -180,7 +179,7 @@ class CheckoutFlow:
     def process_credit_check(self):
         # --- CHECKOUT STEP 3: CREDIT CHECK & ID IDENTIFICATION ---
         print("--- CHECKOUT STEP 3: CREDIT CHECK & ID IDENTIFICATION ---")
-        WebDriverWait(self.driver, 10).until(
+        self.wait.until(
             EC.presence_of_element_located((By.XPATH, "//*[@id='paymentInfo'] | //*[@id='paymentDetails']"))
         )
         time.sleep(3)
@@ -229,7 +228,7 @@ class CheckoutFlow:
         
 
         # 1. Input Card Number (Matching your ID: CreditCard_CardNumber)
-        card_input = WebDriverWait(self.driver, 15).until(EC.element_to_be_clickable((By.ID, "CreditCard_CardNumber")))
+        card_input = self.wait.until(EC.element_to_be_clickable((By.ID, "CreditCard_CardNumber")))
         card_input.clear()
         card_input.send_keys(self.config["card_number"])
         time.sleep(2)
@@ -246,7 +245,7 @@ class CheckoutFlow:
             time.sleep(1) # Wait for animation expansion
             
             # Action 2: Locate December item and physically click it with the mouse cursor
-            target_month = WebDriverWait(self.driver, 10).until(
+            target_month = self.wait.until(
                 EC.presence_of_element_located((By.ID, "CreditCard_ExpirationDataMM-12"))
             )
 
@@ -277,7 +276,7 @@ class CheckoutFlow:
             time.sleep(1)
             
             # Action 2: Locate 2035 item and physically click it with the mouse cursor
-            target_year = WebDriverWait(self.driver, 10).until(
+            target_year = self.wait.until(
                 EC.visibility_of_element_located((By.ID, "CreditCard_ExpirationDateYY-2035"))
             )
             actions.reset_actions()
@@ -301,7 +300,7 @@ class CheckoutFlow:
         # 2. WAIT FOR THE ERROR BANNER
         # We target the class 'form-validation-errors' which appears in your HTML
         try:
-            error_banner = WebDriverWait(self.driver, 30).until(
+            error_banner = self.wait.until(
                 EC.any_of(
                     EC.visibility_of_element_located((By.XPATH, "//div[@role='alert'][contains(., 'The card you are trying to use is not supported')]")),
                     EC.visibility_of_element_located((By.XPATH, "//div[@role='alert'][contains(., 'There is an issue with the credit card information provided')]")),
@@ -335,15 +334,15 @@ class CheckoutFlow:
             print("Review page doesn't exist for this webpage")
             return
            
-        WebDriverWait(self.driver, 20).until(
+        self.wait.until(
             EC.url_contains("OrderReview")
         )
 
         # Wait for the page to load
-        WebDriverWait(self.driver, 15).until(lambda d: d.execute_script("return document.readyState") == "complete")
+        self.wait.until(lambda d: d.execute_script("return document.readyState") == "complete")
         time.sleep(10) # Give the final review elements a moment to populate
 
-        submit_btn = WebDriverWait(self.driver, 15).until(EC.element_to_be_clickable((By.XPATH, "//*[@id='LinkToPlaceOrder'] | //*[@id='place-order-button']")))
+        submit_btn = self.wait.until(EC.element_to_be_clickable((By.XPATH, "//*[@id='LinkToPlaceOrder'] | //*[@id='place-order-button']")))
         self.driver.execute_script("arguments[0].scrollIntoView({block: 'center', behavior: 'smooth'});", submit_btn)
         time.sleep(4) # Allow scroll animation to finish
 
@@ -352,3 +351,152 @@ class CheckoutFlow:
 
         print("Finalizing recording... pausing for 5 seconds.")
         time.sleep(5)
+
+
+    def virgin_new_device(self):
+        """
+        Executes intermediate checkout steps: Device selection, SweetPay selection,
+        modal handling, downpayment slider adjustments, and item addition to cart.
+        """
+        driver = self.driver
+        nav = self.nav
+        actions = ActionChains(driver)
+        device_target = self.config['device_name']
+
+        # --- STEP 2: DYNAMIC DEVICE SELECTION ---
+        print(f"--- STEP 2: FINDING AND SELECTING PLAN '{device_target}'")
+
+        device_model_xpath = f"//div[contains(@class, 'item phone') and .//span[@class='phoneDescription' and text()='{device_target}']]"
+
+        try:
+            device_card = self.wait.until(
+                EC.presence_of_element_located((By.XPATH, device_model_xpath))
+            )
+            driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", device_card)
+            print("Scrolled vertically to the device tile.")
+            time.sleep(1.5) 
+
+            nav.stable_click(device_card)
+            print("Successfully clicked the device!")
+
+        except Exception as e:
+            print("Warning: Could not do scroll to device. Proceeding anyway...")
+
+        self.wait.until(EC.visibility_of_element_located((By.ID, "phoneInfo")))
+        time.sleep(2)
+
+        sweetpay_lite_card = self.wait.until(EC.visibility_of_element_located((By.ID, "FO9")))
+        nav.stable_click(sweetpay_lite_card)
+        self.wait.until(EC.text_to_be_present_in_element_attribute((By.ID, "FO9"), "class", "selected"))
+        time.sleep(1.5)
+
+        sweetpay_regular_card = self.wait.until(EC.visibility_of_element_located((By.ID, "FO7")))
+        nav.stable_click(sweetpay_regular_card)
+        self.wait.until(EC.text_to_be_present_in_element_attribute((By.ID, "FO7"), "class", "selected"))
+        time.sleep(1.5)
+
+        continue_cta = self.wait.until(EC.visibility_of_element_located((By.ID, "accss-step1-btn")))
+        nav.stable_click(continue_cta)
+        time.sleep(1.5)
+        
+        # --- STEP 2.5: HANDLING MODAL SCREENS ---
+        print("--- STEP 2.5: HANDLING MODAL SCREENS ---")
+        try:
+            get_started_btn = self.wait.until(
+                EC.element_to_be_clickable((By.ID, "addaline-newline-heading-link1"))
+            )
+
+            nav.stable_click((By.ID, "addaline-newline-heading-link1"))
+            print("Clicking New Customer CTA")
+            
+            try:
+                self.wait.until(
+                    EC.invisibility_of_element_located((By.XPATH, "//div[contains(text(), 'Determining')]"))
+                )
+                self.wait.until(
+                    EC.invisibility_of_element_located((By.XPATH, "//div[contains(text(), 'Loading')]"))
+                )
+            except Exception as e:
+                print(f"Warning: Loading screen did not disappear: {str(e)}")
+        except Exception as e:
+            print(f"Failed during modal selection: {str(e)}")
+
+        # --- STEP 3: INTERACTING WITH THE SLIDER ---
+        print("--- STEP 3: INITIALIZING SLIDER MANIPULATION ---")
+        try:
+            slider_pointer = self.wait.until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, "span.rz-pointer-min"))
+            )
+            print("Slider handle successfully located.")
+
+            target_downpayment = 240
+
+            # --- PRIMARY STRATEGY: JavaScript Injection ---
+            try:
+                print("Attempting to set slider via AngularJS Scope Injection...")
+                js_script = f"""
+                    var element = document.querySelector('.rzslider');
+                    var scope = angular.element(element).scope();
+                    scope.$apply(function() {{
+                        scope.term.sliderValue = {target_downpayment};
+                    }});
+                """
+                driver.execute_script(js_script)
+                print(f"Primary strategy successful: Slider set directly to ${target_downpayment}!")
+                time.sleep(2)
+
+            # --- FALLBACK STRATEGY: ActionChains Drag and Drop ---
+            except Exception as js_error:
+                print(f"JavaScript injection failed ({str(js_error)}). Launching ActionChains fallback...")
+                
+                slider_pointer = self.wait.until(
+                    EC.visibility_of_element_located((By.CSS_SELECTOR, "span.rz-pointer-min"))
+                )
+                
+                actions.click_and_hold(slider_pointer).move_by_offset(150, 0).release().perform()
+                print("Fallback strategy completed: Slider dragged via ActionChains simulation.")
+                time.sleep(2)
+
+        except Exception as e:
+            print(f"❌ Error during Slider processing: {str(e)}")
+        
+        nav.stable_click((By.XPATH, "//a[contains(@class, 'nextStep') and @data-ng-click='showstep(3)']"))
+        time.sleep(1.5)
+        print("Continue to rate plan step...")
+
+        nav.stable_click((By.XPATH, "//fieldset//plan-container[1]"))
+        time.sleep(1.5)
+        print("Plan selected...")
+
+        nav.stable_click((By.XPATH, "//a[contains(@class, 'nextStep') and contains(., 'Continue to Step 4')]"))
+        time.sleep(1.5)
+        print("Continue to Smartcare step...")
+
+        nav.stable_click((By.XPATH, "//div[contains(@class, 'smartcareBox')][1]"))
+        time.sleep(1.5)
+        print("Smartcare selected...")
+
+        nav.stable_click((By.XPATH, "//a[@data-ng-click='addtobasket()']"))
+        time.sleep(1.5)
+        print("Adding to cart...")
+
+        self.wait.until(
+            EC.element_to_be_clickable((By.XPATH, "//a[contains(@href, 'postpaid-order-init.do') and contains(text(), 'Checkout')]"))
+        )
+        time.sleep(2)
+
+        monthly_charges_section = driver.find_element(
+            By.XPATH, "//div[contains(@class, 'box')][.//h2[text()='Monthly charges']]"
+        )
+
+        actions.move_to_element(monthly_charges_section).perform()
+
+        checkout_btn = driver.find_element(By.XPATH, "//a[@href='../activation/postpaid-order-init.do']")
+        actions.move_to_element(checkout_btn).perform()
+
+        nav.stable_click((By.XPATH, "//a[text()='Checkout']"))
+        self.wait.until(EC.presence_of_element_by_locator((By.CLASS_NAME, "innerVerificationcontainer")))
+
+        time.sleep(2)
+
+

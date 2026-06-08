@@ -65,7 +65,7 @@ try:
         options.add_experimental_option(key, value)
 
     driver = webdriver.Chrome(options=options)
-    wait = WebDriverWait(driver, 15)
+    wait = WebDriverWait(driver, 30)
 
     # --- 3. INITIALIZE NAV & RECORDING ---
     nav = GlobalNav(driver)
@@ -75,6 +75,8 @@ try:
         display_size=DISPLAY_SIZE, 
         file_name=CONFIG["file_name"],
     )
+
+    print(f"🚀 Starting automated test run for {CONFIG['file_name']} ... \n --- STEP 1: LANDING & NAVIGATION ---")
 
     # --- STEP 1: LANDING & NAVIGATION ---
     driver.get(CONFIG["target_url"])
@@ -97,7 +99,7 @@ try:
     plan_card_xpath = f"//div[contains(@class, 'planHeading') and contains(., '{CONFIG['plan_name']}')]/ancestor::plan-container"
 
     try:
-        initial_next_btn = WebDriverWait(driver, 10).until(
+        initial_next_btn = wait.until(
             EC.presence_of_element_located((By.XPATH, plan_card_xpath))
         )
         driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", initial_next_btn)
@@ -111,7 +113,7 @@ try:
 
     for attempt in range(max_scroll_attempts):
         try:
-            plan_card = WebDriverWait(driver, 2).until(
+            plan_card = wait.until(
                 EC.presence_of_element_located((By.XPATH, plan_card_xpath))
             )
             if plan_card.is_displayed():
@@ -152,7 +154,7 @@ try:
     # --- STEP 2.5: HANDLING MODAL SCREENS ---
     print("--- STEP 2.5: HANDLING MODAL SCREENS ---")
     try:
-        get_started_btn = WebDriverWait(driver, 15).until(
+        get_started_btn = wait.until(
             EC.element_to_be_clickable((By.ID, "addaline-newline-heading-link2"))
         )
 
@@ -160,11 +162,11 @@ try:
         print(f"Clicking New Customer CTA")
         
         try:
-            WebDriverWait(driver, 20).until(
+            wait.until(
                 EC.invisibility_of_element_located((By.XPATH, "//div[contains(text(), 'Determining')]"))
             )
 
-            WebDriverWait(driver, 20).until(
+            wait.until(
                 EC.invisibility_of_element_located((By.XPATH, "//div[contains(text(), 'Loading')]"))
             )
 
@@ -175,29 +177,29 @@ try:
 
     # --- STEP 3: DYNAMIC SIM ASSIGNMENT ---
     print("--- STEP 3: DYNAMIC SIM ASSIGNMENT ---")
-    plan_next_step = WebDriverWait(driver, 30).until(EC.element_to_be_clickable((By.ID, "next-step-button-1")))
+    plan_next_step = wait.until(EC.element_to_be_clickable((By.ID, "next-step-button-1")))
     time.sleep(2) 
 
     nav.stable_click(plan_next_step)
 
-    WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.ID, "esim-number-input")))
+    wait.until(EC.presence_of_element_located((By.ID, "esim-number-input")))
     time.sleep(2)
 
     try:
-        edit_plan_cta = WebDriverWait(driver, 15).until(
+        edit_plan_cta = wait.until(
             EC.element_to_be_clickable((By.ID, "edit-rateplan-link"))
         )
         nav.stable_click(edit_plan_cta)
         print("Clicked plan Edit link; container section expanded.")
         time.sleep(1.5)
 
-        WebDriverWait(driver, 10).until(
+        wait.until(
             EC.visibility_of_element_located((By.ID, "tab-0"))
         )
         time.sleep(1.5)
 
         radio_xpath = "//input[@type='radio' and @name='rate-plan']"
-        WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, radio_xpath)))
+        wait.until(EC.presence_of_element_located((By.XPATH, radio_xpath)))
         plan_radios = driver.find_elements(By.XPATH, radio_xpath)
 
         alt_index_pos = 0 if initial_plan_index != 0 and initial_plan_index != '0' else 1
@@ -210,7 +212,7 @@ try:
         print("Temporarily switched plan selection to an alternative option.")
         time.sleep(2.0)
 
-        plan_radios = WebDriverWait(driver, 10).until(
+        plan_radios = wait.until(
             EC.presence_of_all_elements_located((By.XPATH, radio_xpath))
         )
         original_plan_radio = plan_radios[int(initial_plan_index)]
@@ -218,7 +220,7 @@ try:
         print("Restored original selection back.")
         time.sleep(2.0)
 
-        next_step_btn = WebDriverWait(driver, 10).until(
+        next_step_btn = wait.until(
             EC.element_to_be_clickable((By.ID, "next-step-button-1"))
         )
         driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", next_step_btn)
@@ -229,36 +231,36 @@ try:
     except Exception as e:
         print(f"Warning: Failed path execution variations adjusting plan configurations: {e}")
 
-    WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.ID, "esim-number-input")))
+    wait.until(EC.presence_of_element_located((By.ID, "esim-number-input")))
     time.sleep(2) 
 
     try:
         print("Waiting for activation options loading overlay to disappear...")
         loader_xpath = "//*[@aria-busy='true' and @role='alert']"
-        WebDriverWait(driver, 20).until(
+        wait.until(
             EC.invisibility_of_element_located((By.XPATH, loader_xpath))
         )
         print("Loader has disappeared. Proceeding to IMEI steps.")
     except Exception as e:
         print(f"Warning: Loader didn't clear or wasn't found, attempting to proceed: {e}")
 
-    psim = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "order-selection-radio")))
+    psim = wait.until(EC.presence_of_element_located((By.ID, "order-selection-radio")))
     nav.stable_click(psim)
-    WebDriverWait(driver, 30).until(EC.invisibility_of_element_located((By.ID, "esim-number-input")))
+    wait.until(EC.invisibility_of_element_located((By.ID, "esim-number-input")))
     
-    final_next_btn = WebDriverWait(driver, 15).until(EC.element_to_be_clickable((By.ID, "add-to-cart-button-1")))
+    final_next_btn = wait.until(EC.element_to_be_clickable((By.ID, "add-to-cart-button-1")))
     nav.stable_click(final_next_btn)
 
     # --- STEP 4: CART REVIEW & CHECKOUT START ---
     print("--- STEP 4: CART REVIEW & CHECKOUT START ---")
     try:
-        WebDriverWait(driver, 20).until(
+        wait.until(
             EC.any_of(
                 EC.invisibility_of_element_located((By.ID, "brfLoadingIndicator")),
                 EC.invisibility_of_element_located((By.XPATH, "//*[contains(@class, 'vrui-animate-icons-flipper')] | //*[contains(text(), 'Loading shopping cart.')]"))
             )
         )
-        checkout_btn = WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.ID, "proceed-to-checkout-button")))
+        checkout_btn = wait.until(EC.element_to_be_clickable((By.ID, "proceed-to-checkout-button")))
 
         try:
             footer = driver.find_element(By.XPATH, "//nav[@aria-label='Privacy, security and legal'] | //nav[contains(@class, 'legal-links')]")
@@ -268,7 +270,7 @@ try:
         
         time.sleep(3.5)
 
-        WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.ID, "proceed-to-checkout-button")))
+        wait.until(EC.element_to_be_clickable((By.ID, "proceed-to-checkout-button")))
         nav.stable_click((By.ID, "proceed-to-checkout-button"), timeout=20)
         print("Successfully proceeded to checkout.")
     except Exception as e:
