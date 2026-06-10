@@ -332,7 +332,7 @@ try:
             driver.execute_script("window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'});")
         
         time.sleep(3.5)
-        nav.stable_click((By.ID, "proceed-to-checkout-button"), timeout=20)
+        nav.stable_click((By.ID, "proceed-to-checkout-button"))
         print("Successfully proceeded to checkout.")
     except Exception as e:
         print(f"Checkout transition failed: {e}")

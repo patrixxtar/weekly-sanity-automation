@@ -89,9 +89,7 @@ try:
 
     # --- STEP 2: DYNAMIC PLAN SELECTION ---
     print(f"--- STEP 2: FINDING AND SELECTING PLAN '{CONFIG['plan_name']}' ---")
-
-    nav.start_popup_checker()
-
+    
     plan_card_xpath = f"//h3[@class='g-card-plan__title' and contains(text(), '{CONFIG['plan_name']}')]/ancestor::div[contains(@class, 'card-plan')]"
     carousel_next_xpath = "//button[contains(@class, 'slick-next')]" 
 

@@ -131,17 +131,26 @@ class CheckoutFlow:
 
         current_url = self.driver.current_url.lower()
         if "virgin" in current_url or "virginplus" in current_url:
-            print("Detected Virgin Plus environment. Waiting for the first 'Continue' button...")
+            print("Detected Virgin Plus environment.")
             try:
                 # Giving a brief pause for the DOM/animation to settle before looking for the 2nd CTA
                 time.sleep(1.5)
-                virgin_continue = self.wait.until(EC.element_to_be_clickable((By.ID, "new-number-continue-button")))
-                self.nav.stable_click(virgin_continue)
-                print("Clicked first 'Continue' button for Virgin Plus.")
+                first_continue = self.wait.until(EC.element_to_be_clickable((By.ID, "new-number-continue-button")))
+                print("Assigning Virgin Continue ID")
             except Exception as e:
-                print(f"Failed to click Virgin's first continue button: {e}")
+                print(f"Failed to assign {e}")
+        elif "bell" in current_url:
+            print("Detected Bell environment.")
+            try:
+                time.sleep(1.5)
+                first_continue = self.wait.until(EC.element_to_be_clickable((By.XPATH, 
+                "//*[@id='ContinueToPaymentInfo'] | //*[@id='linkToContinue']")))
+                print("Assigning Bell Continue ID")
+            except Exception as e:
+                print(f"Failed to assign {e}")
 
         # 3. Continue button
+        self.nav.stable_click(first_continue)
         continue_btn = self.wait.until(
             EC.element_to_be_clickable((By.XPATH, 
                 "//*[@id='ContinueToPaymentInfo'] | //*[@id='linkToContinue']"
@@ -153,27 +162,20 @@ class CheckoutFlow:
 
     def shipping(self):
         print("--- CHECKOUT STEP: SHIPPING ---")
+        self.wait.until((EC.presence_of_element_located((By.ID, "standardShipping-shipping-container"))))
         
         # 1. Search for any button that has 'Continue' in the data-dtname attribute
         # We use contains() to be safer against slight naming changes
-        shipping_xpath = "//button[contains(@data-dtname, 'Continue button')]"
-        
         # 2. Wait for the button to appear in the DOM
         try:
-            btn = self.wait.until(EC.presence_of_element_located((By.XPATH, shipping_xpath)))
+            btn = self.wait.until(EC.presence_of_element_located((By.XPATH, "//button[contains(@data-dtname, 'Continue button')]")))
             
             # 3. If found, scroll it into view and click
             self.nav.stable_click(btn)        
             print("Successfully found and clicked the Continue button.")
             
         except Exception as e:
-            # If it still fails, print the buttons currently on the page for debugging
-            all_buttons = self.driver.find_elements(By.TAG_NAME, "button")
-            print(f"DEBUG: Found {len(all_buttons)} total buttons. Dumping attributes:")
-            for b in all_buttons:
-                print(f"Button text: '{b.text}', data-dtname: '{b.get_attribute('data-dtname')}', id: '{b.get_attribute('id')}'")
-            
-            print(f"❌ Critical failure: {e}")
+            print(f"❌ Shipping failure: {e}")
 
 
     def process_credit_check(self):
@@ -495,7 +497,7 @@ class CheckoutFlow:
         actions.move_to_element(checkout_btn).perform()
 
         nav.stable_click((By.XPATH, "//a[text()='Checkout']"))
-        self.wait.until(EC.presence_of_element_by_locator((By.CLASS_NAME, "innerVerificationcontainer")))
+        self.wait.until(EC.presence_of_element_located((By.CLASS_NAME, "innerVerificationcontainer")))
 
         time.sleep(2)
 

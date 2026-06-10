@@ -53,25 +53,40 @@ class GlobalNav:
             ignored_exceptions=[ElementClickInterceptedException, StaleElementReferenceException]
         )
 
-        # 1. Resolve element
-        if isinstance(locator_or_element, WebElement):
-            element = locator_or_element
-        else:
-            element = custom_wait.until(EC.element_to_be_clickable(locator_or_element))
-        
-        # 2. Scroll if requested
-        if scroll:
-            self.driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", element)
-            time.sleep(0.5) # 0.5s is plenty of time for 'smooth' scrolling to finish
+        for attempt in range(3):
+            try:
+                # 1. Resolve element freshly on every retry if it's a locator
+                if isinstance(locator_or_element, WebElement):
+                    element = locator_or_element
+                else:
+                    element = custom_wait.until(EC.element_to_be_clickable(locator_or_element))
+                
+                # 2. Scroll if requested
+                if scroll:
+                    self.driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", element)
+                    # Note: 'smooth' scroll takes time. 'instant' is safer for automation, 
+                    # but if you need smooth, 1.2s to 1.5s is safer than 0.5s.
+                    time.sleep(1.2) 
 
-        # 3. Reliable click attempt
-        try:
-            # Primary attempt: JavaScript click (bypasses overlays/interceptions)
-            self.driver.execute_script("arguments[0].click();", element)
-        except Exception:
-            # Fallback attempt: Physical mouse move, pause, and click via ActionChains
-            actions = ActionChains(self.driver)
-            actions.move_to_element(element).pause(0.3).click().perform()
+                # 3. Reliable click attempt
+                self.driver.execute_script("arguments[0].click();", element)
+                return # Success! Exit the function
+
+            except StaleElementReferenceException:
+                if attempt == 2:  # If it fails 3 times, give up and raise
+                    raise
+                print("Element went stale during execution. Retrying stable_click...")
+                time.sleep(0.5)
+                
+            except Exception:
+                # Fallback attempt if JS click failed for non-stale reasons (e.g. element detached)
+                try:
+                    actions = ActionChains(self.driver)
+                    actions.move_to_element(element).pause(0.3).click().perform()
+                    return
+                except Exception as e:
+                    if attempt == 2:
+                        raise e
 
 
     def landing_popups(self):
@@ -158,6 +173,12 @@ class GlobalNav:
         print("🤖 Background popup monitoring thread actively running...")
         while not self._stop_popup_loop:
             try:
+
+                if self.driver.find_elements(By.ID, "eligible_offers_lightbox"):
+                    print("⏸️ Checkout lightbox detected by background thread. Pausing popup checker cycle.")
+                    time.sleep(3)
+                    continue
+                
                 # 1. Quickly poll to see if either element is present via the lambda
                 target_btn = self.wait.until(
                     lambda d: (

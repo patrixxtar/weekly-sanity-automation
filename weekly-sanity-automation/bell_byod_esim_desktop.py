@@ -162,6 +162,7 @@ try:
 
     # --- STEP 3: DYNAMIC SIM ASSIGNMENT ---
     print("--- STEP 3: DYNAMIC SIM ASSIGNMENT ---")
+    wait.until(EC.invisibility_of_element_located((By.ID, "brfLoadingIndicator")))
     wait.until(EC.presence_of_element_located((By.ID, "imei-number")))
     time.sleep(2) 
     nav.start_popup_checker()
