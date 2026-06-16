@@ -82,15 +82,15 @@ try:
     
     nav.landing_popups()
     nav.stable_click((By.XPATH, "//button[contains(., 'Mobility')]"))
-    nav.stable_click((By.XPATH, "//a[contains(@href, '/Mobility/Bring-Your-Own-Phone')]"))
+    nav.stable_click((By.XPATH, "//a[contains(@href, '/Mobility/Cell_phone_plans')]"))
 
-    print("Successfully navigated to BYOP.")
+    print("Successfully navigated to Plans.")
     time.sleep(3)
 
     # --- STEP 2: DYNAMIC PLAN SELECTION ---
     print(f"--- STEP 2: FINDING AND SELECTING PLAN '{CONFIG['plan_name']}' ---")
     
-    plan_card_xpath = f"//h3[@class='g-card-plan__title' and contains(text(), '{CONFIG['plan_name']}')]/ancestor::div[contains(@class, 'card-plan')]"
+    plan_card_xpath = f"//h3[contains(text(), '{CONFIG['plan_name']}')]/ancestor::div[contains(@class, 'card-plan')]"
     carousel_next_xpath = "//button[contains(@class, 'slick-next')]" 
 
     try:

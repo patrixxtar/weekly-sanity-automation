@@ -1,0 +1,351 @@
+=== PYTEST FAILURES LOG ===
+
+Test: tests.test_bell_byod::test_full_bell_checkout_flow[False-psim] [FAILURE]
+Message: selenium.common.exceptions.TimeoutException: Message: 
+Stacktrace:
+#0 0x63bb5587229a <unknown>
+#1 0x63bb55254449 <unknown>
+#2 0x63bb552a8baf <unknown>
+#3 0x63bb552a8e01 <unknown>
+#4 0x63bb552f3ae4 <unknown>
+#5 0x63bb552f0cbf <unknown>
+#6 0x63bb5529c132 <unknown>
+#7 0x63bb5529cf41 <unknown>
+#8 0x63bb55838737 <unknown>
+#9 0x63bb55836f39 <unknown>
+#10 0x63bb55821c26 <unknown>
+#11 0x63bb55837ada <unknown>
+#12 0x63bb55809bd0 <unknown>
+#13 0x63bb5585ec28 <unknown>
+#14 0x63bb5585edc5 <unknown>
+#15 0x63bb55870e1e <unknown>
+#16 0x7bf3b748aaa4 <unknown>
+#17 0x7bf3b7517a64 __clone
+Details:
+automation_env = <shared_utils.SeleniumFramework object at 0x76cc997cb140>, sim_type = 'psim', has_upc = False
+
+    @pytest.mark.parametrize("sim_type", ["esim", "psim"])
+    @pytest.mark.parametrize("has_upc", [False, True])
+    def test_full_bell_checkout_flow(automation_env, sim_type, has_upc):
+        utils = automation_env
+    
+        nav = LandingNavigationFramework(utils, CONFIG, SELECTORS)
+        checkout = CheckoutFlowFramework(utils, CONFIG)
+    
+        nav.open_site()
+        nav.bell_select_plan()
+        nav.bell_handle_modals()
+        nav.bell_configure_device(sim_type=sim_type, has_upc=has_upc)
+    
+        nav.enter_cart()
+        nav.enter_checkout()
+    
+        if sim_type == "esim":
+            checkout.esim_checkout_flow()
+        else:
+>           checkout.psim_checkout_flow()
+
+tests/test_bell_byod.py:25: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+checkout_flow_framework.py:90: in psim_checkout_flow
+    self.process_credit_check()
+checkout_flow_framework.py:188: in process_credit_check
+    self.wait.until(EC.presence_of_element_located(locs["payment_info_container"]))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <selenium.webdriver.support.wait.WebDriverWait (session="0987d24a4bbd62e79e545100d0fc7552")>
+method = <function presence_of_element_located.<locals>._predicate at 0x76cc998027a0>, message = ''
+
+    def until(self, method: Callable[[D], Literal[False] | T], message: str = "") -> T:
+        """Wait until the method returns a value that is not False.
+    
+        Calls the method provided with the driver as an argument until the
+        return value does not evaluate to ``False``.
+    
+        Args:
+            method: A callable object that takes a WebDriver instance as an
+                argument.
+            message: Optional message for TimeoutException.
+    
+        Returns:
+            The result of the last call to `method`.
+    
+        Raises:
+            TimeoutException: If 'method' does not return a truthy value within
+                the WebDriverWait object's timeout.
+    
+        Example:
+            >>> from selenium.webdriver.common.by import By
+            >>> from selenium.webdriver.support.ui import WebDriverWait
+            >>> from selenium.webdriver.support import expected_conditions as EC
+            >>>
+            >>> # Wait until an element is visible on the page
+            >>> wait = WebDriverWait(driver, 10)
+            >>> element = wait.until(EC.visibility_of_element_located((By.ID, "exampleId")))
+            >>> print(element.text)
+        """
+        screen = None
+        stacktrace = None
+    
+        end_time = time.monotonic() + self._timeout
+        while True:
+            try:
+                value = method(self._driver)
+                if value:
+                    return value
+            except self._ignored_exceptions as exc:
+                screen = getattr(exc, "screen", None)
+                stacktrace = getattr(exc, "stacktrace", None)
+            if time.monotonic() > end_time:
+                break
+            time.sleep(self._poll)
+>       raise TimeoutException(message, screen, stacktrace)
+E       selenium.common.exceptions.TimeoutException: Message: 
+E       Stacktrace:
+E       #0 0x63bb5587229a <unknown>
+E       #1 0x63bb55254449 <unknown>
+E       #2 0x63bb552a8baf <unknown>
+E       #3 0x63bb552a8e01 <unknown>
+E       #4 0x63bb552f3ae4 <unknown>
+E       #5 0x63bb552f0cbf <unknown>
+E       #6 0x63bb5529c132 <unknown>
+E       #7 0x63bb5529cf41 <unknown>
+E       #8 0x63bb55838737 <unknown>
+E       #9 0x63bb55836f39 <unknown>
+E       #10 0x63bb55821c26 <unknown>
+E       #11 0x63bb55837ada <unknown>
+E       #12 0x63bb55809bd0 <unknown>
+E       #13 0x63bb5585ec28 <unknown>
+E       #14 0x63bb5585edc5 <unknown>
+E       #15 0x63bb55870e1e <unknown>
+E       #16 0x7bf3b748aaa4 <unknown>
+E       #17 0x7bf3b7517a64 __clone
+
+../../env/lib/python3.12/site-packages/selenium/webdriver/support/wait.py:121: TimeoutException
+------------------------------------------------------------
+Test: tests.test_bell_byod::test_full_bell_checkout_flow[True-esim] [FAILURE]
+Message: selenium.common.exceptions.TimeoutException: Message: 
+Stacktrace:
+#0 0x5921243fb29a <unknown>
+#1 0x592123ddd449 <unknown>
+#2 0x592123e31baf <unknown>
+#3 0x592123e31e01 <unknown>
+#4 0x592123e7cae4 <unknown>
+#5 0x592123e79cbf <unknown>
+#6 0x592123e25132 <unknown>
+#7 0x592123e25f41 <unknown>
+#8 0x5921243c1737 <unknown>
+#9 0x5921243bff39 <unknown>
+#10 0x5921243aac26 <unknown>
+#11 0x5921243c0ada <unknown>
+#12 0x592124392bd0 <unknown>
+#13 0x5921243e7c28 <unknown>
+#14 0x5921243e7dc5 <unknown>
+#15 0x5921243f9e1e <unknown>
+#16 0x71e4e06a9aa4 <unknown>
+#17 0x71e4e0736a64 __clone
+Details:
+automation_env = <shared_utils.SeleniumFramework object at 0x76cc997ec6b0>, sim_type = 'esim', has_upc = True
+
+    @pytest.mark.parametrize("sim_type", ["esim", "psim"])
+    @pytest.mark.parametrize("has_upc", [False, True])
+    def test_full_bell_checkout_flow(automation_env, sim_type, has_upc):
+        utils = automation_env
+    
+        nav = LandingNavigationFramework(utils, CONFIG, SELECTORS)
+        checkout = CheckoutFlowFramework(utils, CONFIG)
+    
+        nav.open_site()
+        nav.bell_select_plan()
+        nav.bell_handle_modals()
+>       nav.bell_configure_device(sim_type=sim_type, has_upc=has_upc)
+
+tests/test_bell_byod.py:17: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+landing_nav_framework.py:163: in bell_configure_device
+    self.wait.until(EC.visibility_of_element_located(self.s["device"]["imei_input"]))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <selenium.webdriver.support.wait.WebDriverWait (session="6735bbb159c551a9576bd68f153d9d11")>
+method = <function visibility_of_element_located.<locals>._predicate at 0x76cc998031a0>, message = ''
+
+    def until(self, method: Callable[[D], Literal[False] | T], message: str = "") -> T:
+        """Wait until the method returns a value that is not False.
+    
+        Calls the method provided with the driver as an argument until the
+        return value does not evaluate to ``False``.
+    
+        Args:
+            method: A callable object that takes a WebDriver instance as an
+                argument.
+            message: Optional message for TimeoutException.
+    
+        Returns:
+            The result of the last call to `method`.
+    
+        Raises:
+            TimeoutException: If 'method' does not return a truthy value within
+                the WebDriverWait object's timeout.
+    
+        Example:
+            >>> from selenium.webdriver.common.by import By
+            >>> from selenium.webdriver.support.ui import WebDriverWait
+            >>> from selenium.webdriver.support import expected_conditions as EC
+            >>>
+            >>> # Wait until an element is visible on the page
+            >>> wait = WebDriverWait(driver, 10)
+            >>> element = wait.until(EC.visibility_of_element_located((By.ID, "exampleId")))
+            >>> print(element.text)
+        """
+        screen = None
+        stacktrace = None
+    
+        end_time = time.monotonic() + self._timeout
+        while True:
+            try:
+                value = method(self._driver)
+                if value:
+                    return value
+            except self._ignored_exceptions as exc:
+                screen = getattr(exc, "screen", None)
+                stacktrace = getattr(exc, "stacktrace", None)
+            if time.monotonic() > end_time:
+                break
+            time.sleep(self._poll)
+>       raise TimeoutException(message, screen, stacktrace)
+E       selenium.common.exceptions.TimeoutException: Message: 
+E       Stacktrace:
+E       #0 0x5921243fb29a <unknown>
+E       #1 0x592123ddd449 <unknown>
+E       #2 0x592123e31baf <unknown>
+E       #3 0x592123e31e01 <unknown>
+E       #4 0x592123e7cae4 <unknown>
+E       #5 0x592123e79cbf <unknown>
+E       #6 0x592123e25132 <unknown>
+E       #7 0x592123e25f41 <unknown>
+E       #8 0x5921243c1737 <unknown>
+E       #9 0x5921243bff39 <unknown>
+E       #10 0x5921243aac26 <unknown>
+E       #11 0x5921243c0ada <unknown>
+E       #12 0x592124392bd0 <unknown>
+E       #13 0x5921243e7c28 <unknown>
+E       #14 0x5921243e7dc5 <unknown>
+E       #15 0x5921243f9e1e <unknown>
+E       #16 0x71e4e06a9aa4 <unknown>
+E       #17 0x71e4e0736a64 __clone
+
+../../env/lib/python3.12/site-packages/selenium/webdriver/support/wait.py:121: TimeoutException
+------------------------------------------------------------
+Test: tests.test_bell_byod::test_full_bell_checkout_flow[True-psim] [FAILURE]
+Message: selenium.common.exceptions.TimeoutException: Message: 
+Stacktrace:
+#0 0x5c3fd614e29a <unknown>
+#1 0x5c3fd5b30449 <unknown>
+#2 0x5c3fd5b84baf <unknown>
+#3 0x5c3fd5b84e01 <unknown>
+#4 0x5c3fd5bcfae4 <unknown>
+#5 0x5c3fd5bcccbf <unknown>
+#6 0x5c3fd5b78132 <unknown>
+#7 0x5c3fd5b78f41 <unknown>
+#8 0x5c3fd6114737 <unknown>
+#9 0x5c3fd6112f39 <unknown>
+#10 0x5c3fd60fdc26 <unknown>
+#11 0x5c3fd6113ada <unknown>
+#12 0x5c3fd60e5bd0 <unknown>
+#13 0x5c3fd613ac28 <unknown>
+#14 0x5c3fd613adc5 <unknown>
+#15 0x5c3fd614ce1e <unknown>
+#16 0x751ed225eaa4 <unknown>
+#17 0x751ed22eba64 __clone
+Details:
+automation_env = <shared_utils.SeleniumFramework object at 0x76cc997ed400>, sim_type = 'psim', has_upc = True
+
+    @pytest.mark.parametrize("sim_type", ["esim", "psim"])
+    @pytest.mark.parametrize("has_upc", [False, True])
+    def test_full_bell_checkout_flow(automation_env, sim_type, has_upc):
+        utils = automation_env
+    
+        nav = LandingNavigationFramework(utils, CONFIG, SELECTORS)
+        checkout = CheckoutFlowFramework(utils, CONFIG)
+    
+        nav.open_site()
+        nav.bell_select_plan()
+        nav.bell_handle_modals()
+>       nav.bell_configure_device(sim_type=sim_type, has_upc=has_upc)
+
+tests/test_bell_byod.py:17: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+landing_nav_framework.py:163: in bell_configure_device
+    self.wait.until(EC.visibility_of_element_located(self.s["device"]["imei_input"]))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <selenium.webdriver.support.wait.WebDriverWait (session="e547b5d5b61b879ba1902070b043ad81")>
+method = <function visibility_of_element_located.<locals>._predicate at 0x76cc99803240>, message = ''
+
+    def until(self, method: Callable[[D], Literal[False] | T], message: str = "") -> T:
+        """Wait until the method returns a value that is not False.
+    
+        Calls the method provided with the driver as an argument until the
+        return value does not evaluate to ``False``.
+    
+        Args:
+            method: A callable object that takes a WebDriver instance as an
+                argument.
+            message: Optional message for TimeoutException.
+    
+        Returns:
+            The result of the last call to `method`.
+    
+        Raises:
+            TimeoutException: If 'method' does not return a truthy value within
+                the WebDriverWait object's timeout.
+    
+        Example:
+            >>> from selenium.webdriver.common.by import By
+            >>> from selenium.webdriver.support.ui import WebDriverWait
+            >>> from selenium.webdriver.support import expected_conditions as EC
+            >>>
+            >>> # Wait until an element is visible on the page
+            >>> wait = WebDriverWait(driver, 10)
+            >>> element = wait.until(EC.visibility_of_element_located((By.ID, "exampleId")))
+            >>> print(element.text)
+        """
+        screen = None
+        stacktrace = None
+    
+        end_time = time.monotonic() + self._timeout
+        while True:
+            try:
+                value = method(self._driver)
+                if value:
+                    return value
+            except self._ignored_exceptions as exc:
+                screen = getattr(exc, "screen", None)
+                stacktrace = getattr(exc, "stacktrace", None)
+            if time.monotonic() > end_time:
+                break
+            time.sleep(self._poll)
+>       raise TimeoutException(message, screen, stacktrace)
+E       selenium.common.exceptions.TimeoutException: Message: 
+E       Stacktrace:
+E       #0 0x5c3fd614e29a <unknown>
+E       #1 0x5c3fd5b30449 <unknown>
+E       #2 0x5c3fd5b84baf <unknown>
+E       #3 0x5c3fd5b84e01 <unknown>
+E       #4 0x5c3fd5bcfae4 <unknown>
+E       #5 0x5c3fd5bcccbf <unknown>
+E       #6 0x5c3fd5b78132 <unknown>
+E       #7 0x5c3fd5b78f41 <unknown>
+E       #8 0x5c3fd6114737 <unknown>
+E       #9 0x5c3fd6112f39 <unknown>
+E       #10 0x5c3fd60fdc26 <unknown>
+E       #11 0x5c3fd6113ada <unknown>
+E       #12 0x5c3fd60e5bd0 <unknown>
+E       #13 0x5c3fd613ac28 <unknown>
+E       #14 0x5c3fd613adc5 <unknown>
+E       #15 0x5c3fd614ce1e <unknown>
+E       #16 0x751ed225eaa4 <unknown>
+E       #17 0x751ed22eba64 __clone
+
+../../env/lib/python3.12/site-packages/selenium/webdriver/support/wait.py:121: TimeoutException
+------------------------------------------------------------

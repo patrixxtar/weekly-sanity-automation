@@ -1,11 +1,14 @@
 import time
 import threading
+import subprocess
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.common.exceptions import ElementClickInterceptedException, StaleElementReferenceException, TimeoutException
+
+from pathlib import Path
 
 class GlobalNav:
     
@@ -15,15 +18,11 @@ class GlobalNav:
         self.wait = WebDriverWait(self.driver, 20)
 
     def start_recording(self, display_num: int, display_size: tuple, file_name: str):
-        """Verifies environment folders and spins up the background FFmpeg recording layer."""
-        import subprocess
-        from pathlib import Path
-
-        # Explicitly verify storage nodes before worker initiation
-        Path(file_name).parent.mkdir(parents=True, exist_ok=True)
         
         ffmpeg_cmd = [
-            "ffmpeg", "-y", "-f", "x11grab", "-draw_mouse", "0",
+            "ffmpeg", "-y", 
+            "-f", "x11grab", 
+            "-draw_mouse", "0",
             "-video_size", f"{display_size[0]}x{display_size[1]}",
             "-i", f":{display_num}.0+0,0",
             "-codec:v", "libx264", "-pix_fmt", "yuv420p", "-r", "24",
@@ -43,50 +42,75 @@ class GlobalNav:
             self.video_recorder.terminate() # SIGTERM allows FFmpeg to close the file
             try:
                 self.video_recorder.wait(timeout=5)
-            except:
+            except subprocess.TimeoutExpired:
                 self.video_recorder.kill()
+                self.video_recorder.wait()
+
+            if hasattr(self, 'current_recording_file'):
+                input_path = Path(self.current_recording_file)
+                if input_path.exists():
+                    compressed_path = input_path.with_name(f"compressed_{input_path.name}")
+                    
+                    print(f"🤐 Compressing recording... {input_path.name}")
+                    
+                    # -crf 23 to 28 is the sweet spot for great compression vs quality
+                    compress_cmd = [
+                        "ffmpeg", "-y", "-i", str(input_path),
+                        "-codec:v", "libx264", "-preset", "medium", "-crf", "24",
+                        "-codec:a", "copy", str(compressed_path)
+                    ]
+                    
+                    # Run synchronously (or thread/process it if you don't want to block)
+                    subprocess.run(compress_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    
+                    # Replace the giant original with the small compressed file
+                    input_path.unlink()  
+                    compressed_path.rename(input_path)  
+                    print(f"✅ Compression complete! File shrunk drastically.")
+                    
 
     def stable_click(self, locator_or_element, timeout=15, scroll=True):
-        """Clicks an element reliably using Javascript or ActionChains fallback."""
+        """Clicks an element reliably. Logs details if elements are missing or stale."""
         custom_wait = WebDriverWait(
-            self.driver, timeout, poll_frequency=0.5, 
+            self.driver, timeout, poll_frequency=1.0, 
             ignored_exceptions=[ElementClickInterceptedException, StaleElementReferenceException]
         )
 
         for attempt in range(3):
             try:
-                # 1. Resolve element freshly on every retry if it's a locator
+                # 1. Resolve element
                 if isinstance(locator_or_element, WebElement):
                     element = locator_or_element
                 else:
-                    element = custom_wait.until(EC.element_to_be_clickable(locator_or_element))
-                
+                    try:
+                        element = custom_wait.until(EC.element_to_be_clickable(locator_or_element))
+                    except Exception as e:
+                        if attempt == 2:
+                            print(f"ERROR: Element missing or not clickable after {timeout}s: {locator_or_element}")
+                            raise TimeoutException(f"Element not found: {locator_or_element}") from e
+                        
+                        print(f"Warning: Element not found on attempt {attempt + 1}/3. Retrying locator: {locator_or_element}")
+                        time.sleep(1.5)
+                        continue
+
                 # 2. Scroll if requested
                 if scroll:
-                    self.driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", element)
-                    # Note: 'smooth' scroll takes time. 'instant' is safer for automation, 
-                    # but if you need smooth, 1.2s to 1.5s is safer than 0.5s.
-                    time.sleep(1.2) 
+                    self.driver.execute_script("arguments[0].scrollIntoView({behavior: 'instant', block: 'center'});", element)
 
-                # 3. Reliable click attempt
-                self.driver.execute_script("arguments[0].click();", element)
-                return # Success! Exit the function
-
-            except StaleElementReferenceException:
-                if attempt == 2:  # If it fails 3 times, give up and raise
-                    raise
-                print("Element went stale during execution. Retrying stable_click...")
-                time.sleep(0.5)
-                
-            except Exception:
-                # Fallback attempt if JS click failed for non-stale reasons (e.g. element detached)
+                # 3. Click execution
                 try:
-                    actions = ActionChains(self.driver)
-                    actions.move_to_element(element).pause(0.3).click().perform()
-                    return
-                except Exception as e:
-                    if attempt == 2:
-                        raise e
+                    element.click()
+                    return 
+                except Exception:
+                    # Fallback to JavaScript if native click is blocked by an overlay/animation
+                    self.driver.execute_script("arguments[0].click();", element)
+                    return 
+
+            except Exception as e:
+                if attempt == 2:
+                    raise e
+                print(f"Warning: Click action failed on attempt {attempt + 1}/3. Retrying entire sequence...")
+                time.sleep(1.0)
 
 
     def landing_popups(self):

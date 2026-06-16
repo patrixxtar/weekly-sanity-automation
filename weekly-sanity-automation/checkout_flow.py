@@ -368,7 +368,7 @@ class CheckoutFlow:
         # --- STEP 2: DYNAMIC DEVICE SELECTION ---
         print(f"--- STEP 2: FINDING AND SELECTING PLAN '{device_target}'")
 
-        device_model_xpath = f"//div[contains(@class, 'item phone') and .//span[@class='phoneDescription' and text()='{device_target}']]"
+        device_model_xpath = f"//div[contains(@class, 'item') and contains(@class, 'phone') and .//span[@class='phoneDescription' and contains(text(), '{device_target}')]]"
 
         try:
             device_card = self.wait.until(
@@ -384,18 +384,27 @@ class CheckoutFlow:
         except Exception as e:
             print("Warning: Could not do scroll to device. Proceeding anyway...")
 
+    
         self.wait.until(EC.visibility_of_element_located((By.ID, "phoneInfo")))
         time.sleep(2)
 
-        sweetpay_lite_card = self.wait.until(EC.visibility_of_element_located((By.ID, "FO9")))
-        nav.stable_click(sweetpay_lite_card)
-        self.wait.until(EC.text_to_be_present_in_element_attribute((By.ID, "FO9"), "class", "selected"))
-        time.sleep(1.5)
+        try:
+            sweetpay_lite_card = self.wait.until(EC.visibility_of_element_located((By.ID, "FO9")))
+            nav.stable_click(sweetpay_lite_card)
+            self.wait.until(EC.text_to_be_present_in_element_attribute((By.ID, "FO9"), "class", "selected"))
+            time.sleep(1.5)
+            print("Sweetpay Lite selected.")
 
-        sweetpay_regular_card = self.wait.until(EC.visibility_of_element_located((By.ID, "FO7")))
-        nav.stable_click(sweetpay_regular_card)
-        self.wait.until(EC.text_to_be_present_in_element_attribute((By.ID, "FO7"), "class", "selected"))
-        time.sleep(1.5)
+            sweetpay_regular_card = self.wait.until(EC.visibility_of_element_located((By.ID, "FO7")))
+            nav.stable_click(sweetpay_regular_card)
+            self.wait.until(EC.text_to_be_present_in_element_attribute((By.ID, "FO7"), "class", "selected"))
+            time.sleep(1.5)
+            print("Reselected back to Sweetpay Regular.")
+
+        except TimeoutException:
+            # If Sweetpay Lite isn't there, the script jumps straight here and carries on
+            print("Sweetpay Lite not found. Skipping selection sequence...")
+
 
         continue_cta = self.wait.until(EC.visibility_of_element_located((By.ID, "accss-step1-btn")))
         nav.stable_click(continue_cta)

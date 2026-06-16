@@ -1,5 +1,3 @@
-env/
-venv/
 __pycache__/
 *.pyc
 
@@ -8,6 +6,4 @@ __pycache__/
 
 # Ignore automated test video artifacts
 **/*.mp4
-**/*.m3u8
-**/*.ts
-env/
+**/*.png

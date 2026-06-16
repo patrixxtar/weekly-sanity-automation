@@ -91,15 +91,15 @@ try:
     nav.stable_click((By.ID, "mobileBarNavBtnG"))
     time.sleep(1)
     nav.stable_click((By.XPATH, "//button[contains(., 'Mobility')]"))
-    nav.stable_click((By.XPATH, "//a[contains(@href, '/Mobility/Bring-Your-Own-Phone')]"))
+    nav.stable_click((By.XPATH, "//a[contains(@href, '/Mobility/Cell_phone_plans')]"))
 
-    print("Successfully navigated to BYOP.")
+    print("Successfully navigated to Plans.")
     time.sleep(3)
 
     # --- STEP 2: DYNAMIC PLAN SELECTION ---
     print(f"--- STEP 2: NAVIGATING TO PLAN '{CONFIG['plan_name']}' ---")
 
-    plan_card_xpath = f"//h3[@class='g-card-plan__title' and contains(text(), '{CONFIG['plan_name']}')]/ancestor::div[contains(@class, 'card-plan')]"
+    plan_card_xpath = f"//h3[contains(text(), '{CONFIG['plan_name']}')]/ancestor::div[contains(@class, 'card-plan')]"
     
     try:
         # 1. Find the card and the header
