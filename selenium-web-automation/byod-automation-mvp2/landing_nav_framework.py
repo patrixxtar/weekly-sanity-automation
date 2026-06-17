@@ -26,30 +26,41 @@ class LandingNavigationFramework:
         self.utils.stable_click(self.s["nav"]["mobility_btn"])
         self.utils.stable_click(self.s["nav"]["plans_link"])
 
-    def enter_cart(self):
+    def bell_navigate_byod(self):
+        self._bell_select_byod_plan()
+        self._bell_handle_modals()
+
+    def bell_byod_sb(self, sim_type="esim", has_upc=False):
         self.utils.wait_for_ready()
-        print("Transitioning to cart...")
+        self.utils.popup_handler.start_background_monitor()
+        self.wait.until(EC.visibility_of_element_located(self.s["device"]["imei_input"]))
+        if has_upc:
+            self._bell_process_upc()
+            self._bell_dynamic_byod_plan()
+            self._bell_add_ons_step()
+        else:
+            self._bell_dynamic_byod_plan()
         
-        try:
-            self.utils.stable_click(self.s["cart"]["continue_btn"])
-        except Exception as e:
-            print(f"⚠️ Cart continue button failed: {e}")
-
-        try:
-            print("Checking for potential offers lightbox...")
-            self.wait.until(EC.visibility_of_element_located(self.s["cart"]["offer_modal_title"]))
-            self.utils.stable_click(self.s["cart"]["offer_modal_close"])
-            print("Offers lightbox dismissed.")
-        except:
-            print("No offers lightbox detected. Proceeding.")
-
-        try:
-            self.wait.until(EC.presence_of_element_located(self.s["cart"]["cart_confirmation"]))
-            print("✅ Successfully reached final Cart page.")
-        except Exception as e:
-            print(f"⚠️ Could not confirm reach of final cart: {e}")
-
+        self._bell_configure_sim(sim_type)
+        self._bell_enter_cart()
         self.utils.popup_handler.stop_background_monitor()
+
+    def virgin_navigate_byod(self):
+        self._virgin_select_byod_plan()
+        self._virgin_handle_modals()
+
+    def virgin_byod_sb(self,sim_type="esim", is_mobile=False):
+        self.utils.wait_for_ready()
+        self.utils.popup_handler.start_background_monitor()
+        
+        is_mobile = self.driver.execute_script("return window.innerWidth;") < 768
+
+        self.wait.until(EC.visibility_of_element_located(self.s["plan_config"]["next_step"]))
+        self._virgin_dynamic_byod_plan(is_mobile)
+        self._virgin_configure_sim(sim_type)
+        self.utils.popup_handler.stop_background_monitor()
+
+
 
     def enter_checkout(self):
         self.utils.wait_for_ready()
@@ -64,9 +75,11 @@ class LandingNavigationFramework:
         self.utils.stable_click(self.s["cart"]["checkout_btn"])
 
 
-# BELL SPECIFIC FUNCTIONS
+        
 
-    def bell_select_plan(self):
+# BELL SPECIFIC HELPER FUNCTIONS
+
+    def _bell_select_byod_plan(self):
         plan_xpath = self.s["plans"]["plan_card"] 
         carousel_next = self.s["plans"]["carousel_next"]
         
@@ -95,7 +108,7 @@ class LandingNavigationFramework:
                 
         raise Exception(f"Failed to find plan: {self.config['plan_name']}")
 
-    def bell_handle_modals(self):
+    def _bell_handle_modals(self):
         # Ensure modal buttons are visible before interacting
         print("Handling setup modals...")
         self.wait.until(EC.element_to_be_clickable(self.s["modals"]["new_customer_btn"]))
@@ -104,40 +117,44 @@ class LandingNavigationFramework:
         self.wait.until(EC.element_to_be_clickable(self.s["modals"]["mobility_only_btn"]))
         self.utils.stable_click(self.s["modals"]["mobility_only_btn"])
 
-    def bell_configure_device(self, sim_type="esim", has_upc=False):
-        # 1. Ensure the page is idle
+    def _bell_process_upc(self):
         self.utils.wait_for_ready()
         self.wait.until(EC.visibility_of_element_located(self.s["device"]["imei_input"]))
-        self.utils.popup_handler.start_background_monitor()
+        print("--- PROCESSING UPC CODE ---")
+        if "upc_code" not in self.config:
+            raise ValueError("UPC code missing from configuration.")
 
-        print(f"--- CONFIGURING DEVICE FOR: {sim_type.upper()} ---")
-
-        if has_upc and "upc_code" in self.config:
-            print("--- PROCESSING UPC CODE ---")
-            self.utils.stable_click(self.s["upc"]["upc_cta"])
-            upc_input = self.wait.until(EC.visibility_of_element_located(self.s["upc"]["upc_input"]))
-            upc_input.clear()
-            upc_input.send_keys(self.config["upc_code"])
-            self.driver.execute_script("arguments[0].dispatchEvent(new Event('blur'));", upc_input)
-            self.utils.stable_click(self.s["upc"]["upc_submit"])
-            
-            self.utils.wait_for_ready()
-            self.wait.until(EC.visibility_of_element_located(self.s["upc"]["accordion_container"]))
-            accordions = self.driver.find_elements(*self.s["upc"]["accordions"])
-            
-            for acc in accordions:
-                if "collapsed" in acc.get_attribute("class") or acc.get_attribute("aria-expanded") == "false":
-                    self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", acc)
-                    acc.click()
-                    
-            self.utils.stable_click(self.s["upc"]["continue_btn"])
-            self.utils.wait_for_ready()
+        self.utils.stable_click(self.s["upc"]["upc_cta"])
+        upc_input = self.wait.until(EC.visibility_of_element_located(self.s["upc"]["upc_input"]))
+        upc_input.clear()
+        upc_input.send_keys(self.config["upc_code"])
+        self.driver.execute_script("arguments[0].dispatchEvent(new Event('blur'));", upc_input)
+        self.utils.stable_click(self.s["upc"]["upc_submit"])
         
-        # 2. Trigger the plan re-selection logic BEFORE entering IMEI
-        # This mirrors your original script's flow: edit -> toggle -> restore -> next
+        self.utils.wait_for_ready()
+        self.wait.until(EC.visibility_of_element_located(self.s["upc"]["accordion_container"]))
+        accordions = self.driver.find_elements(*self.s["upc"]["accordions"])
+        for btn in accordions:
+            # stable_click handles the scroll, visibility, and native click interaction
+            self.utils.stable_click(btn)
+            
+            # Brief pause to allow the native UI animation to complete
+            time.sleep(0.5)
+        
+        self.utils.wait_for_ready()
+        self.utils.stable_click(self.s["upc"]["continue_btn"])
+        self.utils.wait_for_ready(wait_for_modals=True)
+
+    def _bell_dynamic_byod_plan(self):
+        self.utils.wait_for_ready()
+        print("--- PERFORMING DYNAMIC PLAN RE-SELECTION ---")
         try:
-            print("--- PERFORMING DYNAMIC PLAN RE-SELECTION ---")
-            self.utils.stable_click(self.s["plan_config"]["edit_btn"])
+            data_tab_elements = self.driver.find_elements(*self.s["plan_config"]["data_tab"])
+
+            if not data_tab_elements or not data_tab_elements[0].is_displayed():
+                self.utils.stable_click(self.s["plan_config"]["edit_btn"])
+
+
             self.wait.until(EC.visibility_of_element_located(self.s["plan_config"]["data_tab"]))
             self.utils.wait_for_ready()
             time.sleep(1.5)
@@ -153,12 +170,24 @@ class LandingNavigationFramework:
             next_btn = self.wait.until(EC.element_to_be_clickable(self.s["plan_config"]["next_step"]))
             self.utils.stable_click(next_btn)
             
-            # Wait for reload after plan toggle
             self.utils.wait_for_ready()
-            print("Plan re-selection completed.")
+            print("✅ Plan re-selection completed.")
         except Exception as e:
             print(f"⚠️ Plan re-selection skipped or failed: {e}")
 
+    def _bell_add_ons_step(self):
+        self.utils.wait_for_ready()
+        try:
+            print("--- PROCEEDING PAST ADD-ONS ---")
+            add_ons_btn = self.wait.until(EC.element_to_be_clickable(self.s["upc"]["add_ons_btn"]))
+            self.utils.stable_click(add_ons_btn)
+            self.utils.wait_for_ready()
+            print("✅ Successfully advanced past Add-ons.")
+        except Exception as e:
+            print(f"⚠️ Failed to click add_ons_btn: {e}")
+
+    def _bell_configure_sim(self, sim_type="esim"):
+        print(f"--- CONFIGURING SIM / IMEI FOR: {sim_type.upper()} ---")
         self.utils.wait_for_ready()
         self.wait.until(EC.visibility_of_element_located(self.s["device"]["imei_input"]))
 
@@ -185,6 +214,7 @@ class LandingNavigationFramework:
 
         imei = self.wait.until(EC.visibility_of_element_located(self.s["device"]["imei_input"]))
         imei.clear()
+        
         if sim_type == "psim":
             self.utils.stable_click(self.s["device"]["psim_card"])
             self.utils.wait_for_ready()
@@ -193,19 +223,38 @@ class LandingNavigationFramework:
             imei.send_keys(self.config["esim_imei"])
             self.driver.execute_script("arguments[0].dispatchEvent(new Event('blur'));", imei)
 
-            # 4. Mandatory validation wait
             print("Waiting for IMEI validation...")
             self.wait.until(EC.visibility_of_element_located(self.s["device"]["success_icon"]))
             print("✅ IMEI validated!")
             self.utils.wait_for_ready()
             self.utils.stable_click(self.s["device"]["add_to_cart"])
+        
+    def _bell_enter_cart(self):
+        self.utils.wait_for_ready()
+        print("Transitioning to cart...")
 
-        
-        
+        try:
+            print("Checking for potential offers lightbox...")
+            self.wait.until(EC.visibility_of_element_located(self.s["cart"]["offer_modal_title"]))
+            self.utils.stable_click(self.s["cart"]["offer_modal_close"])
+            print("Offers lightbox dismissed.")
+        except:
+            print("No offers lightbox detected. Proceeding.")
+            try:
+                self.utils.stable_click(self.s["cart"]["continue_btn"])
+            except Exception as e:
+                print(f"⚠️ Cart continue button failed: {e}")
+
+        try:
+            self.wait.until(EC.presence_of_element_located(self.s["cart"]["cart_confirmation"]))
+            print("✅ Successfully reached final Cart page.")
+        except Exception as e:
+            print(f"⚠️ Could not confirm reach of final cart: {e}")
+
 
 # VIRGIN SPECIFIC FUNCTIONS
 
-    def virgin_select_plan(self):
+    def _virgin_select_byod_plan(self):
         self.utils.stable_click(self.s["nav"]["activate_now"])
         time.sleep(3)
 
@@ -231,7 +280,7 @@ class LandingNavigationFramework:
         cta_button = plan_card.find_element(*self.s["plans"]["cta_button"])
         self.utils.stable_click(cta_button)
 
-    def virgin_handle_modals(self):
+    def _virgin_handle_modals(self):
         self.wait.until(EC.element_to_be_clickable(self.s["modals"]["new_customer_btn"]))
         self.utils.stable_click(self.s["modals"]["new_customer_btn"])
         
@@ -242,40 +291,50 @@ class LandingNavigationFramework:
         except:
             pass
 
-    def virgin_configure_device(self, sim_type="esim", is_mobile=False):
+    def _virgin_dynamic_byod_plan(self, is_mobile=False):
         self.utils.wait_for_ready()
+        print("--- PERFORMING DYNAMIC PLAN RE-SELECTION ---")
         self.utils.stable_click(self.s["plan_config"]["next_step"])
-        self.wait.until(EC.presence_of_element_located(self.s["device"]["imei_input"]))
-        time.sleep(2)
 
-        # Plan Re-selection Toggle
+        try:
+            self.wait.until(EC.invisibility_of_element_located(self.s["device"]["loader"]))
+        except:
+            pass
+        
+        self.wait.until(EC.visibility_of_element_located(self.s["device"]["imei_input"]))
         self.utils.stable_click(self.s["plan_config"]["edit_btn"])
         self.wait.until(EC.visibility_of_element_located(self.s["plan_config"]["tab_0"]))
         
-        # Handle Mobile/Tablet Carousel
-        if is_mobile:
-            dots = self.driver.find_elements(*self.s["plan_config"]["carousel_dots"])
-            for dot in dots[1:]:
-                self.utils.stable_click(dot)
-                time.sleep(1.2)
-            if dots:
-                self.utils.stable_click(dots[0])
+        try:
+            if is_mobile:
+                dots = self.driver.find_elements(*self.s["plan_config"]["carousel_dots"])
+                for dot in dots[1:]:
+                    self.utils.stable_click(dot)
+                    time.sleep(1.2)
+                if dots:
+                    self.utils.stable_click(dots[0])
 
-        # Radio Toggle Logic
-        plan_radios = self.wait.until(EC.presence_of_all_elements_located(self.s["plan_config"]["plan_radios"]))
-        target_index = getattr(self, "virgin_plan_index", 1)
-        alt_index = 0 if target_index != 1 else 1
-        self.utils.stable_click(plan_radios[alt_index])
-        time.sleep(2)
-        
-        plan_radios = self.wait.until(EC.presence_of_all_elements_located(self.s["plan_config"]["plan_radios"]))
-        self.utils.stable_click(plan_radios[getattr(self, "virgin_plan_index", 1)])
-        time.sleep(2)
-        self.utils.stable_click(self.s["plan_config"]["next_step"])
+            # Radio Toggle Logic
+            plan_radios = self.wait.until(EC.presence_of_all_elements_located(self.s["plan_config"]["plan_radios"]))
+            target_index = getattr(self, "virgin_plan_index", 1)
+            alt_index = 0 if target_index != 1 else 1
+            self.utils.stable_click(plan_radios[alt_index])
+            time.sleep(2)
+            
+            plan_radios = self.wait.until(EC.presence_of_all_elements_located(self.s["plan_config"]["plan_radios"]))
+            self.utils.stable_click(plan_radios[getattr(self, "virgin_plan_index", 1)])
+            time.sleep(2)
+            self.utils.stable_click(self.s["plan_config"]["next_step"])
 
+            self.utils.wait_for_ready()
+            print("✅ Plan re-selection completed.")
+        except Exception as e:
+            print(f"⚠️ Plan re-selection skipped or failed: {e}")
+
+    def _virgin_configure_sim(self, sim_type="esim"):
+        print(f"--- CONFIGURING SIM / IMEI FOR: {sim_type.upper()} ---")
         self.utils.wait_for_ready()
-        # IMEI Flow
-        self.wait.until(EC.presence_of_element_located(self.s["device"]["imei_input"]))
+        self.wait.until(EC.visibility_of_element_located(self.s["device"]["imei_input"]))
         try:
             self.wait.until(EC.invisibility_of_element_located(self.s["device"]["loader"]))
         except:
@@ -298,27 +357,22 @@ class LandingNavigationFramework:
                 self.utils.stable_click(self.s["device"]["close_imei_modal"])
         except:
             pass
-        
+
         self.wait.until(EC.invisibility_of_element_located(self.s["device"]["close_imei_modal"]))
         self.utils.wait_for_ready()
-        
-        imei_input = self.driver.find_element(*self.s["device"]["imei_input"])
-        imei_input.clear()
 
         if sim_type == "psim":
             # Logic for Physical SIM
             self.utils.stable_click(self.s["device"]["psim_radio"])
         else:
             # Logic for eSIM
+            imei_input = self.driver.find_element(*self.s["device"]["imei_input"])
             imei_input.clear()
             imei_input.send_keys(self.config["esim_imei"])
             # Trigger validation event
             self.driver.execute_script("arguments[0].dispatchEvent(new Event('blur'));", imei_input)
             print("✅ IMEI validated!")
-
-        # 5. Finalize
+        
         self.utils.wait_for_ready()
         self.utils.stable_click(self.s["device"]["add_to_cart"])
         
-        time.sleep(1.5)
-        self.utils.stable_click(self.s["device"]["add_to_cart"])

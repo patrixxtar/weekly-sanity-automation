@@ -102,55 +102,6 @@ class ScreenRecorder:
 
         Path(file_name).parent.mkdir(parents=True, exist_ok=True)
         self.current_recording_file = file_name
-        
-        live_dir = Path("/workspace/live")
-        if live_dir.exists():
-            # Clean up existing stream files
-            for f in glob.glob(str(live_dir / "*.ts")):
-                os.remove(f)
-            if (live_dir / "stream.m3u8").exists():
-                os.remove(live_dir / "stream.m3u8")
-
-        hls_path = live_dir / "stream.m3u8"
-
-        # The 'tee' muxer allows us to encode once, but output to both MP4 and HLS
-        tee_outputs = f"[f=mp4]'{file_name}'|[f=hls:hls_time=1:hls_list_size=0]'{hls_path}'"
-
-        ffmpeg_cmd = [
-            "ffmpeg", "-y",
-            "-f", "x11grab",
-            "-draw_mouse", "0",
-            "-video_size", f"{display_size[0]}x{display_size[1]}",
-            "-i", f":{display_num}.0+0,0",
-            
-            # Global encoding settings (applied ONCE to save VPS CPU)
-            "-c:v", "libx264",
-            "-pix_fmt", "yuv420p",
-            "-r", "24",
-            "-preset", "ultrafast",
-            "-tune", "zerolatency",
-            
-            # Map the video stream to the tee muxer
-            "-map", "0:v",
-            "-f", "tee",
-            tee_outputs
-        ]
-
-        self.video_recorder = subprocess.Popen(
-            ffmpeg_cmd,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
-        )
-
-        print(f"🎥 Recording started (Dual Output: {file_name} & Live HLS)")
-
-    """def start(self, display_num: int, display_size: tuple, file_name: str):
-
-        Path(file_name).parent.mkdir(parents=True, exist_ok=True)
-        self.current_recording_file = file_name
-
-
 
         ffmpeg_cmd = [
             "ffmpeg", "-y",
@@ -173,8 +124,8 @@ class ScreenRecorder:
             stderr=subprocess.DEVNULL
         )
 
-        print("🎥 Recording started (Live Stream Port: 9222)")
-    """
+        print("🎥 Recording started...")
+   
     def stop(self):
 
         if getattr(self, "video_recorder", None):
@@ -254,34 +205,34 @@ class PopupHandler:
             self.thread.join(timeout=2)
 
     def _monitor_loop(self):
-        print("🤖 Background popup monitoring thread actively running...")
         while not self._stop_flag:
             try:
-                if self.driver.find_elements(By.ID, "eligible_offers_lightbox"):
-                    time.sleep(3)
-                    continue
+                # 1. Handle Shadow DOM Chat Widget (The persistent issue)
+                chat_widgets = self.driver.find_elements(By.ID, "ujet-widget")
+                for widget in chat_widgets:
+                    try:
+                        # Pierce the Shadow DOM
+                        shadow_root = widget.shadow_root
+                        # Look for common close/minimize selectors
+                        close_btn = shadow_root.find_element(By.CSS_SELECTOR, ".icon-close")
+                        if close_btn and close_btn.is_displayed():
+                            self.driver.execute_script("arguments[0].click();", close_btn)
+                            print("✅ Automatically closed chat widget (Shadow DOM).")
+                    except Exception:
+                        pass # Widget might not be fully loaded or isn't the one we need
 
-                target_btn = None
-                chat_elements = self.driver.find_elements(By.ID, "ujet-widget")
-                if chat_elements:
-                    target_btn = chat_elements[0].shadow_root.find_element(By.CLASS_NAME, "ujet-minimize")
+                # 2. Handle Standard Modals/Popups
+                popups = self.driver.find_elements(By.ID, "close-lightbox")
+                for p in popups:
+                    if p.is_displayed():
+                        p.click()
+                        print("✅ Closed standard lightbox.")
 
-                if not target_btn:
-                    footer_buttons = self.driver.find_elements(By.XPATH, "//div[@class='home_foot']//button[text()='No']")
-                    if footer_buttons:
-                        target_btn = footer_buttons[0]
-
-
-                if target_btn and target_btn.is_displayed():
-                    self.framework.stable_click(target_btn, timeout=2, scroll=False)
-                    print("💥 Background Thread: Dismissed popup")
-                    self._stop_flag = True 
-                    break
-
-            except Exception:
+            except Exception as e:
+                # Keep the thread alive even if a lookup fails
                 pass
             
-            time.sleep(3)
+            time.sleep(2) # Poll every 2 seconds
 
 
 # =========================================================
@@ -319,7 +270,7 @@ class SeleniumFramework:
                 if isinstance(locator_or_element, WebElement):
                     element = locator_or_element
                 else:
-                    element = self.wait.until(EC.presence_of_element_located(locator_or_element))
+                    element = self.wait.until(EC.element_to_be_clickable(locator_or_element))
 
                 if scroll:
                     self.driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", element)
@@ -332,7 +283,7 @@ class SeleniumFramework:
                     # Attempt 1: Native Click
                     element.click()
                     return
-                except (ElementClickInterceptedException, StaleElementReferenceException):
+                except Exception as native_err:
                     # Attempt 2: ActionChains (Simulates user mouse movement)
                     try:
                         print(f"Native click failed, using ActionChains: {locator_or_element}")
@@ -354,14 +305,18 @@ class SeleniumFramework:
                 # Prevent CPU spiking while looping
                 time.sleep(1)
     
-    def wait_for_ready(self, timeout=15, stabilize_time=1.0):
+    def wait_for_ready(self, timeout=15, stabilize_time=1.0, wait_for_modals=False):
         end_time = time.time() + timeout
         
         time.sleep(0.5)
         
         while time.time() < end_time:
             try:
+                if wait_for_modals:
+                    self.wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "modal-backdrop")))
+
                 self.wait.until(EC.invisibility_of_element_located((By.ID, "brfLoadingIndicator")))
+                self.wait.until(lambda d: d.execute_script("return document.readyState === 'complete'"))
                 time.sleep(stabilize_time)
                 
                 loader = self.driver.find_elements(By.ID, "brfLoadingIndicator")
@@ -408,23 +363,19 @@ class SeleniumFramework:
         self.recorder.stop()
 
         
-def set_file_name(request, device_key: str, folder_name: str) -> str:
+def set_file_name(request, device_key: str, folder_name: str, has_upc: bool = False) -> str:
     test_file_name = Path(request.node.fspath).stem 
 
     sim_type_suffix = ""
     upc_suffix = ""
     
-    # Check for parameters stored in the callspec
     if hasattr(request.node, "callspec"):
         params = request.node.callspec.params
-        
-        # Handle sim_type if it exists
         if "sim_type" in params:
             sim_type_suffix = f"_{params['sim_type']}"
             
-        # Handle has_upc if it exists and is True
-        if params.get("has_upc") is True:
-            upc_suffix = "_UPC"
+    if has_upc:
+        upc_suffix = "_UPC"
             
     device_suffix = f"_{device_key}"
     
@@ -432,3 +383,4 @@ def set_file_name(request, device_key: str, folder_name: str) -> str:
     file_name = f"{test_file_name}{device_suffix}{sim_type_suffix}{upc_suffix}({time.strftime('%m-%d')}).mp4"
     
     return str(Path(__file__).parent / folder_name / file_name)
+

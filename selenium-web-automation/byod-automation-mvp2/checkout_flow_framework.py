@@ -34,7 +34,7 @@ class CheckoutFlowFramework:
             },
             "shipping": {
                 "container": (By.ID, "standardShipping-shipping-container"),
-                "continue_btn": (By.XPATH, "//button[contains(@data-dtname, 'Continue button')]")
+                "continue_btn": (By.XPATH, "//div[@id='shippingAddress']//button[contains(@data-dtname, 'Continue button')]")
             },
             "credit": {
                 "payment_info_container": (By.XPATH, "//*[@id='paymentInfo'] | //*[@id='paymentDetails']"),
@@ -175,10 +175,17 @@ class CheckoutFlowFramework:
         locs = self.locators["shipping"]
         self.wait.until(EC.presence_of_element_located(locs["container"]))
         try:
-            self.utils.stable_click(locs["continue_btn"])        
-            print("Successfully found and clicked the Shipping Continue button.")
+            self.utils.stable_click(locs["continue_btn"])
+            print("Verifying navigation to Credit Check page...")
+            self.wait.until(
+                EC.presence_of_element_located(self.locators["credit"]["payment_info_container"]) 
+            )
+            print("✅ Successfully navigated to Credit Check.")
+            
+        except TimeoutException:
+            raise Exception("❌ Shipping Continue failed: Navigation to Credit Check timed out.")
         except Exception as e:
-            print(f"❌ Shipping failure: {e}")
+            raise Exception(f"❌ Unexpected Shipping failure: {e}")
 
     def process_credit_check(self):
         self.utils.wait_for_ready()
@@ -276,6 +283,8 @@ class CheckoutFlowFramework:
                 )
             )
             print("✅ Success: Validation error detected as expected.")
+            self.driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", error_banner)
+            self.utils.flash_element(error_banner)
         except TimeoutException:
             print("⚠️ Warning: Credit check did not trigger the expected error banner.")
 
@@ -294,11 +303,12 @@ class CheckoutFlowFramework:
         self.utils.wait_for_ready()
         self.wait.until(EC.url_contains("OrderReview"))
         self.wait.until(lambda d: d.execute_script("return document.readyState") == "complete")
-        time.sleep(10) 
+        time.sleep(5) 
 
         submit_btn = self.wait.until(EC.element_to_be_clickable(locs["submit_btn"]))
         self.driver.execute_script("arguments[0].scrollIntoView({block: 'center', behavior: 'smooth'});", submit_btn)
-        time.sleep(4) 
+        time.sleep(2) 
 
         self.utils.stable_click(submit_btn)
-        print("✅ Order submitted successfully!")
+        time.sleep(5)
+        print("✅ E2E flow is completed successfully !")

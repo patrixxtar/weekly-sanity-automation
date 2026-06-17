@@ -57,6 +57,8 @@ SELECTORS = {
         "accordion_container": (By.ID, "promoCode-accordion"),
         "accordions": (By.CSS_SELECTOR, "#promoCode-accordion .collapse-trigger"),
         "continue_btn": (By.ID, "promoCodeContinueBtn"),
+        "add_ons_btn": (By.ID, "next-step-button-2"),
+        
     },
 
     "device": {

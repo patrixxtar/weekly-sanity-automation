@@ -2,11 +2,13 @@ import subprocess
 import sys
 import os
 import xml.etree.ElementTree as ET
+from datetime import datetime 
 
 def run_tests():
     print("=== Test Automation Runner ===")
     
     project_root = os.path.dirname(os.path.abspath(__file__))
+    
     valid_brands = ["bell", "virgin"]
     while True:
         brand = input("Which brand (bell/virgin)? ").strip().lower()
@@ -16,22 +18,32 @@ def run_tests():
 
     valid_devices = ["desktop", "mobile", "tablet", "galaxy_s24_fe", "iphone_15_pro_max", "tablet_mobile_ui", "tablet_desktop_ui"]
     while True:
-        device = input(f"Which device ({valid_devices})? ").strip().lower()
+        device = input(f"Which device ({', '.join(valid_devices)})? ").strip().lower()
         if device in valid_devices:
             break
         print(f"❌ Invalid device! Please choose from: {', '.join(valid_devices)}")
+
+    if brand == "bell":
+        valid_upc = ["true", "false"]
+        while True:
+            upc_choice = input("Do you want UPC enabled? (true/false): ").strip().lower()
+            if upc_choice in valid_upc:
+                break
+            print("❌ Invalid choice! Please enter 'true' or 'false'.")
+    else:
+        upc_choice = "false"
 
     test_file = os.path.join("tests", f"test_{brand}_byod.py")
     
     os.chdir(project_root)
     
     xml_report = os.path.join(project_root, "temp_results.xml")
-    log_file = os.path.join(project_root, "failures_log.txt")
     
     cmd = [
         sys.executable, "-m", "pytest", 
         test_file, 
         "--device", device, 
+        "--upc", upc_choice,
         "-s", "-v",
         f"--junitxml={xml_report}"
     ]
@@ -48,19 +60,14 @@ def run_tests():
         print(f"\n❌ An unexpected error occurred: {e}")
     finally:
         if os.path.exists(xml_report):
-            generate_failure_log(xml_report, log_file)
-            # Clean up the temporary XML report
+            logs_dir = os.path.join(project_root, "logs")
+            generate_failure_log(xml_report, output_dir=logs_dir)
             os.remove(xml_report)
 
 def generate_failure_log(xml_path, output_dir="logs"):
-    """
-    Generates a unique log file for each run using a timestamp.
-    """
-    # Ensure the directory exists
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-        
-    # Generate unique filename: logs/failures_2026-06-17_050049.log
+
     timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
     log_path = os.path.join(output_dir, f"failures_{timestamp}.log")
     

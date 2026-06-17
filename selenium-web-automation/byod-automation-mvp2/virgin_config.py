@@ -49,7 +49,7 @@ SELECTORS = {
     },
 
     "device": {
-        "psim_radio": (By.ID, "order-selection-radio"),
+        "psim_radio": (By.XPATH, "//input[@id='order-selection-radio']/parent::div"),
         "imei_input": (By.ID, "esim-number-input"),
         "loader": (By.XPATH, "//*[@aria-busy='true' and @role='alert']"),
         "find_imei_link": (By.ID, "find-esim-num-link"),

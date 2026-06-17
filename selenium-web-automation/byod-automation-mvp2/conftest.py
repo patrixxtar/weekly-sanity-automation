@@ -8,6 +8,7 @@ from bell_config import DEVICE_PROFILES
 
 def pytest_addoption(parser):
     parser.addoption("--device", action="store", default="desktop", help="Device profile to use")
+    parser.addoption("--upc", action="store", default="false", help="Run with UPC enabled/disabled")
 
 def get_device_config(device_key):
     if device_key in ["mobile", "tablet"]:
@@ -30,8 +31,13 @@ def get_device_config(device_key):
     print(f"\n⚠️ Device '{device_key}' not found. Falling back to default desktop.")
     return DEVICE_PROFILES.get("desktop")
 
+@pytest.fixture
+def has_upc(request):
+    option = request.config.getoption("--upc")
+    return str(option).lower() == "true"
+
 @pytest.fixture(scope="function")
-def automation_env(request):
+def automation_env(request, has_upc):
     device_key = request.config.getoption("--device")
     device = get_device_config(device_key)
     
@@ -44,10 +50,14 @@ def automation_env(request):
 
     display_size = device["display_size"]
     
-    file_name = set_file_name(request, device_key, device.get("folder"))
+    file_name = set_file_name(request, device_key, device.get("folder"), has_upc=has_upc)
     
     # Setup
-    ctx = BrowserContext(display_size=display_size, mobile_emulation=device.get("mobile_emulation"),target_url=target_url)
+    ctx = BrowserContext(
+        display_size=display_size, 
+        mobile_emulation=device.get("mobile_emulation"), 
+        target_url=target_url, 
+        )
     ctx.start()
     utils = SeleniumFramework(ctx.driver)
 
@@ -71,18 +81,22 @@ def pytest_runtest_makereport(item, call):
     outcome = yield
     report = outcome.get_result()
 
-    # Check if the test failed during the 'call' phase (execution)
     if report.when == "call" and report.failed:
         driver = getattr(item, "driver", None)
         if driver:
-            # Create a directory for failure screenshots
             screenshot_dir = Path.cwd() / "failures"
             screenshot_dir.mkdir(parents=True, exist_ok=True)
             
             timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            file_name = f"{item.name}_{timestamp}.png"
-            file_path = str(screenshot_dir / file_name)
+            file_base = f"{item.name}_{timestamp}"
             
-            # Save the screenshot
-            driver.save_screenshot(file_path)
-            print(f"\n📸 Failure detected! Screenshot saved to: {file_path}")
+            # REQUIREMENT 4: Outputs failure log and screenshot simultaneously
+            png_path = screenshot_dir / f"{file_base}.png"
+            txt_path = screenshot_dir / f"{file_base}.txt"
+            
+            driver.save_screenshot(str(png_path))
+            
+            with open(txt_path, "w", encoding="utf-8") as f:
+                f.write(report.longreprtext)
+                
+            print(f"\n📸 Failure detected! Screenshot & Traceback saved to: {screenshot_dir}")

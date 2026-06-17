@@ -13,12 +13,10 @@ def test_full_virgin_checkout_flow(automation_env, sim_type):
     
     # Execution Flow
     nav.open_site()
-    nav.virgin_select_plan()
-    nav.virgin_handle_modals()
+    nav.virgin_navigate_byod()
     
-    nav.virgin_configure_device(sim_type=sim_type)
+    nav.virgin_byod_sb(sim_type=sim_type)
     
-    nav.enter_cart()
     nav.enter_checkout()
     
     # VIRGIN PSIM FLOW FOLLOWS ESIM CHECKOUT
