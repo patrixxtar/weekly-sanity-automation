@@ -68,24 +68,12 @@ pipeline {
                     stage('Run Test') {
                         steps {
                             script {
-                                def testFile = "tests/test_${env.BRAND}_byod.py"
-                                // Add UPC to the XML name so reports don't overwrite each other
-                                def xmlReport = "test_results/junit_${env.BRAND}_${env.DEVICE}_upc_${env.UPC}.xml"
-
-                                echo "🚀 Executing: Brand=${env.BRAND} | Device=${env.DEVICE} | UPC=${env.UPC}"
-
-                                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
-                                    sh """
-                                        . ${VENV_PATH}/bin/activate
-                                        export PYTHONPATH="\${WORKSPACE}"
-                                        
-                                        # Pre-flight check: This will print the actual traceback if conftest.py has an error
-                                        echo "--- Checking conftest.py import ---"
-                                        python3 -c "import conftest; print('conftest.py loaded successfully')"
-                                        
-                                        # Run the tests
-                                        pytest tests/test_bell_byod.py --device ${env.DEVICE} --upc ${env.UPC} -s -v --junitxml=${xmlReport}
-                                    """
+                                // Navigate to the correct directory
+                                dir('selenium-web-automation/byod-automation-mvp2') {
+                                    withEnv(["PATH+PYTHON=${tool 'Python'}/bin", "PYTHONPATH=. "]) {
+                                        // Now run your tests
+                                        sh "pytest tests/test_bell_byod.py --device ${env.DEVICE} --upc ${env.UPC} -s -v"
+                                    }
                                 }
                             }
                         }
