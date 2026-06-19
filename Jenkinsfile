@@ -1,63 +1,93 @@
 pipeline {
+    // Target the specific VPS node you set up
     agent { 
         label 'vps-agent' 
     }
 
+    // These parameters replace your run_tests.py inputs
+    parameters {
+        choice(name: 'BRAND', choices: ['bell', 'virgin'], description: 'Which brand to test?')
+        choice(name: 'DEVICE', choices: ['desktop', 'mobile', 'tablet', 'galaxy_s24_fe', 'iphone_15_pro_max', 'tablet_mobile_ui', 'tablet_desktop_ui'], description: 'Which device profile?')
+        booleanParam(name: 'UPC', defaultValue: false, description: 'Run with UPC enabled? (Bell only)')
+    }
+
     environment {
-        // Defines the folder where your actual Python scripts live
-        SCRIPT_DIR = 'selenium-web-automation/byod-automation-mvp2'
+        // Ensure Python outputs directly to Jenkins console without buffering
         PYTHONUNBUFFERED = '1'
+        // Define paths
+        VENV_PATH = "${WORKSPACE}/venv"
+        RESULTS_DIR = "${WORKSPACE}/test_results"
     }
 
     stages {
-        stage('Parallel Execution') {
-            parallel {
-                // Bell Brand Permutations
-                stage('Bell Desktop') { steps { runTest('bell', 'desktop') } }
-                stage('Bell Mobile') { steps { runTest('bell', 'mobile') } }
-                stage('Bell Tablet') { steps { runTest('bell', 'tablet') } }
-                
-                // Virgin Brand Permutations
-                stage('Virgin Desktop') { steps { runTest('virgin', 'desktop') } }
-                stage('Virgin Mobile') { steps { runTest('virgin', 'mobile') } }
-                stage('Virgin Tablet') { steps { runTest('virgin', 'tablet') } }
+        stage('Setup Environment') {
+            steps {
+                script {
+                    echo "Setting up Python Virtual Environment..."
+                    sh """
+                        python3 -m venv ${VENV_PATH}
+                        . ${VENV_PATH}/bin/activate
+                        
+                        # Upgrade pip and install requirements
+                        # Ensure you have a requirements.txt with pytest, selenium, pyvirtualdisplay, etc.
+                        pip install --upgrade pip
+                        pip install -r requirements.txt
+                    """
+                }
+            }
+        }
+
+        stage('Clean Old Artifacts') {
+            steps {
+                // Remove old videos, screenshots, and logs so they don't bloat the workspace
+                sh """
+                    rm -f **/*.mp4
+                    rm -rf failures/
+                    rm -rf ${RESULTS_DIR}
+                    mkdir -p ${RESULTS_DIR}
+                """
+            }
+        }
+
+        stage('Execute Pytest') {
+            steps {
+                script {
+                    def upcFlag = params.UPC ? "true" : "false"
+                    def testFile = "tests/test_${params.BRAND}_byod.py"
+                    def xmlReport = "${RESULTS_DIR}/junit_report.xml"
+
+                    echo "🚀 Running Tests: Brand=${params.BRAND}, Device=${params.DEVICE}, UPC=${upcFlag}"
+
+                    // We use catchError to ensure the pipeline continues to the post block even if tests fail
+                    catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                        sh """
+                            . ${VENV_PATH}/bin/activate
+                            pytest ${testFile} \
+                                --device ${params.DEVICE} \
+                                --upc ${upcFlag} \
+                                -s -v \
+                                --junitxml=${xmlReport}
+                        """
+                    }
+                }
             }
         }
     }
 
     post {
         always {
-            // Clean up: Archive artifacts and gather reports
-            junit "${SCRIPT_DIR}/results_*.xml"
-            archiveArtifacts artifacts: "${SCRIPT_DIR}/**/*.mp4, ${SCRIPT_DIR}/failures/*.png, ${SCRIPT_DIR}/failures/*.txt", allowEmptyArchive: true
+            echo "📦 Archiving Test Artifacts..."
             
-            // Housekeeping: remove heavy video/report files to keep VPS disk clean
-            sh "rm -f ${SCRIPT_DIR}/results_*.xml ${SCRIPT_DIR}/**/*.mp4"
+            // Archive JUnit XML for Jenkins Test Trend Graphs
+            junit testResults: 'test_results/junit_report.xml', allowEmptyResults: true
+
+            // Archive the videos (desktop-views, mobile-views, etc.) and failure screenshots
+            archiveArtifacts artifacts: '**/*.mp4, failures/*.png, failures/*.txt', allowEmptyArchive: true
+        }
+        cleanup {
+            echo "🧹 Cleaning up workspace to save VPS disk space..."
+            // Optional: Uncomment the line below to wipe the workspace after the run
+            // cleanWs()
         }
     }
-}
-
-// Reusable function to handle the test execution logic
-def runTest(brand, device) {
-    def upc = (brand == 'bell') ? 'true' : 'false'
-    // Create a totally unique venv name for this specific parallel thread
-    def venvName = "venv_${brand}_${device}"
-    
-    sh """
-        cd ${SCRIPT_DIR}
-        
-        # Ensure a completely isolated virtual environment exists for this thread
-        [ -d ${venvName} ] || python3 -m venv ${venvName}
-        . ${venvName}/bin/activate
-        
-        # Install dependencies inside this specific environment safely
-        pip install -r ../../requirements.txt
-        
-        # Execute tests using headless virtual display
-        xvfb-run --auto-servernum python3 -m pytest tests/test_${brand}_byod.py \
-            --device ${device} \
-            --upc ${upc} \
-            -s -v \
-            --junitxml=results_${brand}_${device}.xml
-    """
 }
