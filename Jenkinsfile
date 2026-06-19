@@ -1,5 +1,7 @@
 pipeline {
-    agent any
+    agent { 
+        label 'vps-agent' 
+    }
 
     environment {
         // Defines the folder where your actual Python scripts live
