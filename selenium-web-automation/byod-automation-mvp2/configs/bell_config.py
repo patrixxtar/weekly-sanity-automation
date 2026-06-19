@@ -2,6 +2,8 @@ from selenium.webdriver.common.by import By
 
 CONFIG = {
     "target_url": "https://www.bell.ca/",
+    "username": "baddaline1",
+    "password": "Azul1234$",
     "plan_name": "Ultra",
     "upc_code": "UPC1",
     "esim_imei": "357498198275732",
@@ -31,10 +33,27 @@ SELECTORS = {
         "plans_link": (By.XPATH, "//a[contains(@href, '/Mobility/Cell_phone_plans')]"),
     },
 
+    "login": {
+        "login_cta": (By.ID, "desktopLoginLink"),
+        "username_input": (By.ID, "username"),
+        "username_cta": (By.XPATH, "//button[contains(text(), 'Continue')]"),
+        "password_input": (By.ID, "password"),
+        "password_cta": (By.XPATH, "//button[contains(text(), 'Log in')]"),
+
+    },
+
+    "ciam": {
+        "ciam_page": (By.XPATH, "//h1[contains(text(), 'Confirm your identity')]"),
+        "otp_input": (By.ID, "code"),
+        "otp_submit": (By.XPATH, "//button[contains(text(), 'Submit')]"),
+
+    },
+
     "plans": {
         "plan_card": (By.XPATH, f"//h3[contains(text(), '{CONFIG['plan_name']}')]/ancestor::div[contains(@class,'card-plan')]"),
-        "cta_button": (By.XPATH, ".//button[contains(text(),'Bring your own phone')]"),
-        "carousel_next": (By.XPATH, "//button[contains(@class, 'slick-next')]"),
+        "plan_button": (By.XPATH, ".//button[contains(text(),'Bring your own phone')]"),
+        "carousel": (By.XPATH, "//button[contains(@class, 'slick-next')]"),
+        "slick_dots": (By. CLASS_NAME, "slick-dots"),
     },
 
     "modals": {
@@ -44,7 +63,7 @@ SELECTORS = {
 
     "plan_config": {
         "edit_btn": (By.ID, "editBtnRatePlanSection_SBPage"),
-        "data_tab": (By.ID, "tabpanel-pills-data-allotment"),
+        "plan_tab": (By.ID, "tabpanel-pills-data-allotment"),
         "alt_plan": (By.XPATH, "//div[@id='tabpanel-pills-data-allotment']//h3[not(contains(text(), 'Ultra'))]/ancestor::div[contains(@class, 'graphical_ctrl_container')]"),
         "ultra_plan": (By.XPATH, "//div[@id='tabpanel-pills-data-allotment']//h3[contains(text(), 'Ultra')]/ancestor::div[contains(@class, 'graphical_ctrl_container')]"),
         "next_step": (By.ID, "next-step-button-1"),
@@ -70,7 +89,7 @@ SELECTORS = {
         "success_icon": (By.CLASS_NAME, "icon-checkmark"),
         "add_to_cart": (By.ID, "addToCartCTA"),
         "psim_add_to_cart": (By.ID, "next-step-button-3"),
-        "psim_card": (By.XPATH, "//label[@for='multiSimCard']"),
+        "psim_option": (By.XPATH, "//label[@for='multiSimCard']"),
     },
 
     "cart": {

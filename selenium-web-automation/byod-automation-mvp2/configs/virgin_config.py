@@ -23,6 +23,7 @@ SELECTORS = {
 
     "nav": {
         "mobile_menu": (By.XPATH, "//a[contains(@class, 'accss-mobile-menu-button')]"),
+        "login_cta": (By.XPATH, "//a[contains(@href, '/en/members-lounge/login.html')]"),
         "mobility_btn": (By.XPATH, "//div[@role='button' and contains(., 'Mobile')]"),
         "plans_link": (By.XPATH, "//a[contains(@href, '/en/hot-offers/byop.html')]"),
         "activate_now": (By.XPATH, "//a[text()='Select a plan' or text()='Activate now']")
@@ -31,7 +32,7 @@ SELECTORS = {
     "plans": {
         "plan_container": (By.XPATH, "//plan-container"),
         "dynamic_plan_container": (By.XPATH, f"//div[contains(@class, 'planHeading') and contains(., '{CONFIG['plan_name']}')]/ancestor::plan-container"),
-        "cta_button": (By.XPATH, ".//a[@role='button' and contains(., 'Select plan')]")
+        "plan_button": (By.XPATH, ".//a[@role='button' and contains(., 'Select plan')]")
     },
 
     "modals": {
@@ -43,13 +44,13 @@ SELECTORS = {
     "plan_config": {
         "next_step": (By.ID, "next-step-button-1"),
         "edit_btn": (By.ID, "edit-rateplan-link"),
-        "tab_0": (By.ID, "tab-0"),
+        "plan_tab": (By.ID, "tab-0"),
         "carousel_dots": (By.XPATH, "//ul[@id='radioCard-carousel-1-pagination']//button"),
         "plan_radios": (By.XPATH, "//input[@type='radio' and @name='rate-plan']")
     },
 
     "device": {
-        "psim_radio": (By.XPATH, "//input[@id='order-selection-radio']/parent::div"),
+        "psim_option": (By.XPATH, "//input[@id='order-selection-radio']/parent::div"),
         "imei_input": (By.ID, "esim-number-input"),
         "loader": (By.XPATH, "//*[@aria-busy='true' and @role='alert']"),
         "find_imei_link": (By.ID, "find-esim-num-link"),

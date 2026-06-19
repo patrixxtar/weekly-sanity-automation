@@ -9,3 +9,4 @@ __pycache__/
 **/*.png
 logs/
 failures/
+client_secret*.json

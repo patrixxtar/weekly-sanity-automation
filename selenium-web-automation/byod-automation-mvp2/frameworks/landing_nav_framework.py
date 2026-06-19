@@ -19,18 +19,42 @@ class LandingNavigationFramework:
         self.utils.popup_handler.dismiss(self.s["popups"]["close"])
         self.utils.popup_handler.dismiss(self.s["popups"]["cookie_banner"])
 
+    def login_flow(self):
+        self.utils.stable_click(self.s["login"]["login_cta"])
+        
+        username_input = self.wait.until(EC.visibility_of_element_located(self.s["login"]["username_input"]))
+        username_input.clear()
+        username_input.send_keys(self.config["username"])
+        self.utils.stable_click(self.s["login"]["username_cta"])
+        
+        
+        password_input = self.wait.until(EC.visibility_of_element_located(self.s["login"]["password_input"]))
+        password_input.clear()
+        password_input.send_keys(self.config["password"])
+        self.utils.stable_click(self.s["login"]["password_cta"])
+
+
+    def complete_2fa(self):
+        print(f"Detecting if CIAM is needed...")
+        ciam_page = self.driver.find_element(*self.s["ciam"]["ciam_page"])
+        if ciam_page.is_displayed():
+            print(f"Executing CIAM 2FA process...")
+
+        else:
+            print(f"CIAM page not displayed, skipping...")
+
+    def navigate_byod(self):
         mobile_menu = self.driver.find_element(*self.s["nav"]["mobile_menu"])
         if mobile_menu.is_displayed():
             self.utils.stable_click(mobile_menu)
+
         # Wait for navigation items to be clickable
         self.utils.stable_click(self.s["nav"]["mobility_btn"])
         self.utils.stable_click(self.s["nav"]["plans_link"])
 
-    def bell_navigate_byod(self):
+    def bell_byod_sb(self, sim_type="esim", has_upc=False):
         self._bell_select_byod_plan()
         self._bell_handle_modals()
-
-    def bell_byod_sb(self, sim_type="esim", has_upc=False):
         self.utils.wait_for_ready()
         self.utils.popup_handler.start_background_monitor()
         self.wait.until(EC.visibility_of_element_located(self.s["device"]["imei_input"]))
@@ -45,11 +69,9 @@ class LandingNavigationFramework:
         self._bell_enter_cart()
         self.utils.popup_handler.stop_background_monitor()
 
-    def virgin_navigate_byod(self):
+    def virgin_byod_sb(self,sim_type="esim", is_mobile=False):
         self._virgin_select_byod_plan()
         self._virgin_handle_modals()
-
-    def virgin_byod_sb(self,sim_type="esim", is_mobile=False):
         self.utils.wait_for_ready()
         self.utils.popup_handler.start_background_monitor()
         
@@ -59,8 +81,6 @@ class LandingNavigationFramework:
         self._virgin_dynamic_byod_plan(is_mobile)
         self._virgin_configure_sim(sim_type)
         self.utils.popup_handler.stop_background_monitor()
-
-
 
     def enter_checkout(self):
         self.utils.wait_for_ready()
@@ -80,27 +100,30 @@ class LandingNavigationFramework:
 # BELL SPECIFIC HELPER FUNCTIONS
 
     def _bell_select_byod_plan(self):
-        plan_xpath = self.s["plans"]["plan_card"] 
-        carousel_next = self.s["plans"]["carousel_next"]
+        plan_card = self.s["plans"]["plan_card"] 
+        carousel = self.s["plans"]["carousel"]
         
         # 1. Wait for carousel container to be ready
-        first_carousel_btn = self.wait.until(EC.presence_of_element_located(carousel_next))
+        first_carousel_btn = self.wait.until(EC.presence_of_element_located(carousel))
+        slick_dots = self.wait.until(EC.presence_of_element_located(self.s["plans"]["slick_dots"]))
         self.driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", first_carousel_btn)
+        time.sleep(1.5)
+        self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'})", slick_dots)
         time.sleep(1.5) 
         
         for attempt in range(6):
             try:
-                plan_cards = self.driver.find_elements(*plan_xpath)
+                plan_cards = self.driver.find_elements(*plan_card)
                 if plan_cards and plan_cards[0].is_displayed():
                     print(f"Found plan '{self.config['plan_name']}'!")
-                    cta = plan_cards[0].find_element(*self.s["plans"]["cta_button"])
+                    cta = plan_cards[0].find_element(*self.s["plans"]["plan_button"])
                     self.utils.stable_click(cta)
                     return
             except Exception:
                 pass
             
             # Click next safely
-            next_btn = self.wait.until(EC.element_to_be_clickable(carousel_next))
+            next_btn = self.wait.until(EC.element_to_be_clickable(carousel))
             if next_btn.get_attribute("aria-disabled") == "true":
                 break
             self.utils.stable_click(next_btn, scroll=False)
@@ -149,13 +172,13 @@ class LandingNavigationFramework:
         self.utils.wait_for_ready()
         print("--- PERFORMING DYNAMIC PLAN RE-SELECTION ---")
         try:
-            data_tab_elements = self.driver.find_elements(*self.s["plan_config"]["data_tab"])
+            plan_tab_elements = self.driver.find_elements(*self.s["plan_config"]["plan_tab"])
 
-            if not data_tab_elements or not data_tab_elements[0].is_displayed():
+            if not plan_tab_elements or not plan_tab_elements[0].is_displayed():
                 self.utils.stable_click(self.s["plan_config"]["edit_btn"])
 
 
-            self.wait.until(EC.visibility_of_element_located(self.s["plan_config"]["data_tab"]))
+            self.wait.until(EC.visibility_of_element_located(self.s["plan_config"]["plan_tab"]))
             self.utils.wait_for_ready()
             time.sleep(1.5)
 
@@ -216,7 +239,7 @@ class LandingNavigationFramework:
         imei.clear()
         
         if sim_type == "psim":
-            self.utils.stable_click(self.s["device"]["psim_card"])
+            self.utils.stable_click(self.s["device"]["psim_option"])
             self.utils.wait_for_ready()
             self.utils.stable_click(self.s["device"]["psim_add_to_cart"])
         else:
@@ -277,8 +300,8 @@ class LandingNavigationFramework:
             self.virgin_plan_index = 1
 
         # FIX 4: Unpack the tuple using the * operator
-        cta_button = plan_card.find_element(*self.s["plans"]["cta_button"])
-        self.utils.stable_click(cta_button)
+        plan_button = plan_card.find_element(*self.s["plans"]["plan_button"])
+        self.utils.stable_click(plan_button)
 
     def _virgin_handle_modals(self):
         self.wait.until(EC.element_to_be_clickable(self.s["modals"]["new_customer_btn"]))
@@ -303,7 +326,7 @@ class LandingNavigationFramework:
         
         self.wait.until(EC.visibility_of_element_located(self.s["device"]["imei_input"]))
         self.utils.stable_click(self.s["plan_config"]["edit_btn"])
-        self.wait.until(EC.visibility_of_element_located(self.s["plan_config"]["tab_0"]))
+        self.wait.until(EC.visibility_of_element_located(self.s["plan_config"]["plan_tab"]))
         
         try:
             if is_mobile:
@@ -363,7 +386,7 @@ class LandingNavigationFramework:
 
         if sim_type == "psim":
             # Logic for Physical SIM
-            self.utils.stable_click(self.s["device"]["psim_radio"])
+            self.utils.stable_click(self.s["device"]["psim_option"])
         else:
             # Logic for eSIM
             imei_input = self.driver.find_element(*self.s["device"]["imei_input"])
