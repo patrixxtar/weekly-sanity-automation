@@ -1,13 +1,10 @@
 pipeline {
-    // This tells Jenkins to run the job on your VPS host, not inside the Docker container
     agent { 
-        label 'vps-agent' // Ensure this matches the exact name of the node you created in Jenkins
+        label 'vps-agent' 
     }
 
     environment {
-        // Forces Python to output logs immediately to Jenkins console
         PYTHONUNBUFFERED = '1'
-        // Sets a consistent path for the virtual environment
         VENV_PATH = "${WORKSPACE}/venv"
     }
 
@@ -26,7 +23,6 @@ pipeline {
 
         stage('Clean Old Artifacts') {
             steps {
-                // Prevents old videos and screenshots from bloating your VPS storage
                 sh """
                     rm -f **/*.mp4
                     rm -rf failures/
@@ -37,7 +33,6 @@ pipeline {
         }
 
         stage('Parallel Test Execution') {
-            // The matrix block automatically handles parallelization
             matrix {
                 axes {
                     axis {
@@ -46,26 +41,49 @@ pipeline {
                     }
                     axis {
                         name 'DEVICE'
-                        values 'desktop', 'galaxy_s24_fe', 'tablet_desktop_ui'
+                        values 'desktop', 'mobile', 'tablet'
+                    }
+                    axis {
+                        name 'UPC'
+                        values 'true', 'false'
                     }
                 }
+                
+                // This block removes the "Virgin + UPC True" combinations, 
+                // leaving exactly the 9 test runs you requested.
+                excludes {
+                    exclude {
+                        axis {
+                            name 'BRAND'
+                            values 'virgin'
+                        }
+                        axis {
+                            name 'UPC'
+                            values 'true'
+                        }
+                    }
+                }
+
                 stages {
                     stage('Run Test') {
                         steps {
                             script {
                                 def testFile = "tests/test_${env.BRAND}_byod.py"
-                                // Generate a unique XML report name for each parallel run to avoid overwrites
-                                def xmlReport = "test_results/junit_${env.BRAND}_${env.DEVICE}.xml"
+                                // Add UPC to the XML name so reports don't overwrite each other
+                                def xmlReport = "test_results/junit_${env.BRAND}_${env.DEVICE}_upc_${env.UPC}.xml"
 
-                                echo "🚀 Executing in Parallel: Brand=${env.BRAND} | Device=${env.DEVICE}"
+                                echo "🚀 Executing: Brand=${env.BRAND} | Device=${env.DEVICE} | UPC=${env.UPC}"
 
-                                // catchError ensures one failed test doesn't stop the whole pipeline from archiving artifacts
                                 catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
                                     sh """
                                         . ${VENV_PATH}/bin/activate
+                                        
+                                        // Critical fix: Tells Python where your root directory is
+                                        export PYTHONPATH="\${WORKSPACE}"
+                                        
                                         pytest ${testFile} \
                                             --device ${env.DEVICE} \
-                                            --upc false \
+                                            --upc ${env.UPC} \
                                             -s -v \
                                             --junitxml=${xmlReport}
                                     """
@@ -81,11 +99,7 @@ pipeline {
     post {
         always {
             echo "📦 Processing Test Results and Archiving Artifacts..."
-            
-            // Generates the Pass/Fail trend graph using the JUnit plugin
             junit testResults: 'test_results/*.xml', allowEmptyResults: true
-
-            // Uploads the videos, screenshots, and logs to the Jenkins UI
             archiveArtifacts artifacts: '**/*.mp4, failures/*.png, failures/*.txt', allowEmptyArchive: true
         }
     }
