@@ -68,12 +68,12 @@ pipeline {
                     stage('Run Test') {
                         steps {
                             script {
-                                // Navigate to the correct directory
                                 dir('selenium-web-automation/byod-automation-mvp2') {
-                                    withEnv(["PATH+PYTHON=${tool 'Python'}/bin", "PYTHONPATH=. "]) {
-                                        // Now run your tests
-                                        sh "pytest tests/test_bell_byod.py --device ${env.DEVICE} --upc ${env.UPC} -s -v"
-                                    }
+                                    // Use the absolute path to your venv's python
+                                    def pythonBin = "/home/scarlett/jenkins-agent/workspace/weekly-sanity-automation/venv/bin/python"
+                                    
+                                    // Run pytest using the venv python module
+                                    sh "${pythonBin} -m pytest tests/test_bell_byod.py --device ${env.DEVICE} --upc ${env.UPC} -s -v"
                                 }
                             }
                         }
