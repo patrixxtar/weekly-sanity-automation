@@ -51,7 +51,7 @@ def runTest(brand, device) {
         . ${venvName}/bin/activate
         
         # Install dependencies inside this specific environment safely
-        pip install -r requirements.txt
+        pip install -r ../../requirements.txt
         
         # Execute tests using headless virtual display
         xvfb-run --auto-servernum python3 -m pytest tests/test_${brand}_byod.py \
