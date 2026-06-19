@@ -40,19 +40,20 @@ pipeline {
 // Reusable function to handle the test execution logic
 def runTest(brand, device) {
     def upc = (brand == 'bell') ? 'true' : 'false'
+    // Create a totally unique venv name for this specific parallel thread
+    def venvName = "venv_${brand}_${device}"
     
     sh """
         cd ${SCRIPT_DIR}
         
-        # Ensure virtual environment exists
-        [ -d venv ] || python3 -m venv venv
-        . venv/bin/activate
+        # Ensure a completely isolated virtual environment exists for this thread
+        [ -d ${venvName} ] || python3 -m venv ${venvName}
+        . ${venvName}/bin/activate
         
-        # Install dependencies
+        # Install dependencies inside this specific environment safely
         pip install -r requirements.txt
         
         # Execute tests using headless virtual display
-        # Note: --junitxml ensures each run has a unique file name to prevent overwriting
         xvfb-run --auto-servernum python3 -m pytest tests/test_${brand}_byod.py \
             --device ${device} \
             --upc ${upc} \
