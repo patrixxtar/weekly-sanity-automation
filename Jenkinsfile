@@ -77,14 +77,14 @@ pipeline {
                                 catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
                                     sh """
                                         . ${VENV_PATH}/bin/activate
-                                        
                                         export PYTHONPATH="\${WORKSPACE}"
                                         
-                                        pytest ${testFile} \
-                                            --device ${env.DEVICE} \
-                                            --upc ${env.UPC} \
-                                            -s -v \
-                                            --junitxml=${xmlReport}
+                                        # Pre-flight check: This will print the actual traceback if conftest.py has an error
+                                        echo "--- Checking conftest.py import ---"
+                                        python3 -c "import conftest; print('conftest.py loaded successfully')"
+                                        
+                                        # Run the tests
+                                        pytest tests/test_bell_byod.py --device ${env.DEVICE} --upc ${env.UPC} -s -v --junitxml=${xmlReport}
                                     """
                                 }
                             }
