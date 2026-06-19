@@ -101,30 +101,29 @@ class LandingNavigationFramework:
 
     def _bell_select_byod_plan(self):
         plan_card = self.s["plans"]["plan_card"] 
-        carousel = self.s["plans"]["carousel"]
-        
-        # 1. Wait for carousel container to be ready
-        first_carousel_btn = self.wait.until(EC.presence_of_element_located(carousel))
-        slick_dots = self.wait.until(EC.presence_of_element_located(self.s["plans"]["slick_dots"]))
-        self.driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", first_carousel_btn)
-        time.sleep(1.5)
-        self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'})", slick_dots)
-        time.sleep(1.5) 
+        carousel_next = self.s["plans"]["carousel_next"]
+        carousel_prev = self.s["plans"]["carousel_prev"]
+
+        if carousel_prev.get_attribute("aria-disabled") == "true":
+            carousel_next = self.wait.until(EC.element_to_be_clickable(carousel_next))
+            self.driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", carousel_btn)
+            time.sleep(1)
         
         for attempt in range(6):
             try:
                 plan_cards = self.driver.find_elements(*plan_card)
                 if plan_cards and plan_cards[0].is_displayed():
                     print(f"Found plan '{self.config['plan_name']}'!")
+                    self.driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", plan_card)
+                    time.sleep(2)
                     cta = plan_cards[0].find_element(*self.s["plans"]["plan_button"])
                     self.utils.stable_click(cta)
                     return
             except Exception:
                 pass
             
-            # Click next safely
-            next_btn = self.wait.until(EC.element_to_be_clickable(carousel))
-            if next_btn.get_attribute("aria-disabled") == "true":
+            carousel_next = self.wait.until(EC.element_to_be_clickable(carousel))
+            if carousel_next.get_attribute("aria-disabled") == "true":
                 break
             self.utils.stable_click(next_btn, scroll=False)
             time.sleep(1.5)

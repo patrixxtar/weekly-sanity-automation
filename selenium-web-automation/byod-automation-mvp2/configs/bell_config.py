@@ -52,7 +52,8 @@ SELECTORS = {
     "plans": {
         "plan_card": (By.XPATH, f"//h3[contains(text(), '{CONFIG['plan_name']}')]/ancestor::div[contains(@class,'card-plan')]"),
         "plan_button": (By.XPATH, ".//button[contains(text(),'Bring your own phone')]"),
-        "carousel": (By.XPATH, "//button[contains(@class, 'slick-next')]"),
+        "carousel_next": (By.XPATH, "//button[contains(@class, 'slick-next')]"),
+        "carousel_prev": (By.XPATH, "//buton[contains(@class, 'slick-prev')]"),
         "slick_dots": (By. CLASS_NAME, "slick-dots"),
     },
 
