@@ -1,73 +1,77 @@
 pipeline {
-    // Target the specific VPS node you set up
+    // This tells Jenkins to run the job on your VPS host, not inside the Docker container
     agent { 
-        label 'vps-agent' 
-    }
-
-    // These parameters replace your run_tests.py inputs
-    parameters {
-        choice(name: 'BRAND', choices: ['bell', 'virgin'], description: 'Which brand to test?')
-        choice(name: 'DEVICE', choices: ['desktop', 'mobile', 'tablet', 'galaxy_s24_fe', 'iphone_15_pro_max', 'tablet_mobile_ui', 'tablet_desktop_ui'], description: 'Which device profile?')
-        booleanParam(name: 'UPC', defaultValue: false, description: 'Run with UPC enabled? (Bell only)')
+        label 'vps-agent' // Ensure this matches the exact name of the node you created in Jenkins
     }
 
     environment {
-        // Ensure Python outputs directly to Jenkins console without buffering
+        // Forces Python to output logs immediately to Jenkins console
         PYTHONUNBUFFERED = '1'
-        // Define paths
+        // Sets a consistent path for the virtual environment
         VENV_PATH = "${WORKSPACE}/venv"
-        RESULTS_DIR = "${WORKSPACE}/test_results"
     }
 
     stages {
         stage('Setup Environment') {
             steps {
-                script {
-                    echo "Setting up Python Virtual Environment..."
-                    sh """
-                        python3 -m venv ${VENV_PATH}
-                        . ${VENV_PATH}/bin/activate
-                        
-                        # Upgrade pip and install requirements
-                        # Ensure you have a requirements.txt with pytest, selenium, pyvirtualdisplay, etc.
-                        pip install --upgrade pip
-                        pip install -r requirements.txt
-                    """
-                }
+                echo "Setting up Python Virtual Environment on the VPS Host..."
+                sh """
+                    python3 -m venv ${VENV_PATH}
+                    . ${VENV_PATH}/bin/activate
+                    pip install --upgrade pip
+                    pip install -r requirements.txt
+                """
             }
         }
 
         stage('Clean Old Artifacts') {
             steps {
-                // Remove old videos, screenshots, and logs so they don't bloat the workspace
+                // Prevents old videos and screenshots from bloating your VPS storage
                 sh """
                     rm -f **/*.mp4
                     rm -rf failures/
-                    rm -rf ${RESULTS_DIR}
-                    mkdir -p ${RESULTS_DIR}
+                    rm -rf test_results/
+                    mkdir -p test_results
                 """
             }
         }
 
-        stage('Execute Pytest') {
-            steps {
-                script {
-                    def upcFlag = params.UPC ? "true" : "false"
-                    def testFile = "tests/test_${params.BRAND}_byod.py"
-                    def xmlReport = "${RESULTS_DIR}/junit_report.xml"
+        stage('Parallel Test Execution') {
+            // The matrix block automatically handles parallelization
+            matrix {
+                axes {
+                    axis {
+                        name 'BRAND'
+                        values 'bell', 'virgin'
+                    }
+                    axis {
+                        name 'DEVICE'
+                        values 'desktop', 'galaxy_s24_fe', 'tablet_desktop_ui'
+                    }
+                }
+                stages {
+                    stage('Run Test') {
+                        steps {
+                            script {
+                                def testFile = "tests/test_${env.BRAND}_byod.py"
+                                // Generate a unique XML report name for each parallel run to avoid overwrites
+                                def xmlReport = "test_results/junit_${env.BRAND}_${env.DEVICE}.xml"
 
-                    echo "🚀 Running Tests: Brand=${params.BRAND}, Device=${params.DEVICE}, UPC=${upcFlag}"
+                                echo "🚀 Executing in Parallel: Brand=${env.BRAND} | Device=${env.DEVICE}"
 
-                    // We use catchError to ensure the pipeline continues to the post block even if tests fail
-                    catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
-                        sh """
-                            . ${VENV_PATH}/bin/activate
-                            pytest ${testFile} \
-                                --device ${params.DEVICE} \
-                                --upc ${upcFlag} \
-                                -s -v \
-                                --junitxml=${xmlReport}
-                        """
+                                // catchError ensures one failed test doesn't stop the whole pipeline from archiving artifacts
+                                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                                    sh """
+                                        . ${VENV_PATH}/bin/activate
+                                        pytest ${testFile} \
+                                            --device ${env.DEVICE} \
+                                            --upc false \
+                                            -s -v \
+                                            --junitxml=${xmlReport}
+                                    """
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -76,18 +80,13 @@ pipeline {
 
     post {
         always {
-            echo "📦 Archiving Test Artifacts..."
+            echo "📦 Processing Test Results and Archiving Artifacts..."
             
-            // Archive JUnit XML for Jenkins Test Trend Graphs
-            junit testResults: 'test_results/junit_report.xml', allowEmptyResults: true
+            // Generates the Pass/Fail trend graph using the JUnit plugin
+            junit testResults: 'test_results/*.xml', allowEmptyResults: true
 
-            // Archive the videos (desktop-views, mobile-views, etc.) and failure screenshots
+            // Uploads the videos, screenshots, and logs to the Jenkins UI
             archiveArtifacts artifacts: '**/*.mp4, failures/*.png, failures/*.txt', allowEmptyArchive: true
-        }
-        cleanup {
-            echo "🧹 Cleaning up workspace to save VPS disk space..."
-            // Optional: Uncomment the line below to wipe the workspace after the run
-            // cleanWs()
         }
     }
 }
