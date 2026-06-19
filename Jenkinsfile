@@ -1,63 +1,60 @@
 pipeline {
     agent any
 
-    // Replaces the input() prompts from run_tests.py with Jenkins UI Dropdowns
-    parameters {
-        choice(name: 'BRAND', choices: ['bell', 'virgin'], description: 'Which brand?')
-        choice(name: 'DEVICE', choices: ['desktop', 'mobile', 'tablet', 'galaxy_s24_fe', 'iphone_15_pro_max', 'tablet_mobile_ui', 'tablet_desktop_ui'], description: 'Which device profile?')
-        booleanParam(name: 'UPC_ENABLED', defaultValue: false, description: 'Enable UPC? (Bell only)')
-    }
-
     environment {
-        // Keeps Python from buffering outputs so you see logs in real-time
+        // Defines the folder where your actual Python scripts live
+        SCRIPT_DIR = 'selenium-web-automation/byod-automation-mvp2'
         PYTHONUNBUFFERED = '1'
     }
 
     stages {
-        stage('Setup Environment') {
-            steps {
-                sh '''
-                    python3 -m venv venv
-                    . venv/bin/activate
-                    pip install --upgrade pip
-                    # Assuming you have a requirements.txt with pytest, selenium, pyvirtualdisplay
-                    pip install -r requirements.txt 
-                '''
-            }
-        }
-
-        stage('Execute UI Tests') {
-            steps {
-                script {
-                    // Force UPC to false if Virgin is selected, mirroring your run_tests.py logic
-                    def upc_choice = (params.BRAND == 'bell' && params.UPC_ENABLED) ? 'true' : 'false'
-                    
-                    sh """
-                        . venv/bin/activate
-                        
-                        # We use xvfb-run to wrap the pytest command. 
-                        # This creates the virtual display that PyVirtualDisplay and ffmpeg require.
-                        xvfb-run --auto-servernum python3 -m pytest tests/test_${params.BRAND}_byod.py \
-                            --device ${params.DEVICE} \
-                            --upc ${upc_choice} \
-                            -s -v \
-                            --junitxml=results.xml
-                    """
-                }
+        stage('Parallel Execution') {
+            parallel {
+                // Bell Brand Permutations
+                stage('Bell Desktop') { steps { runTest('bell', 'desktop') } }
+                stage('Bell Mobile') { steps { runTest('bell', 'mobile') } }
+                stage('Bell Tablet') { steps { runTest('bell', 'tablet') } }
+                
+                // Virgin Brand Permutations
+                stage('Virgin Desktop') { steps { runTest('virgin', 'desktop') } }
+                stage('Virgin Mobile') { steps { runTest('virgin', 'mobile') } }
+                stage('Virgin Tablet') { steps { runTest('virgin', 'tablet') } }
             }
         }
     }
 
     post {
         always {
-            // 1. Process the JUnit XML test report
-            junit testResults: 'results.xml', allowEmptyResults: true
-
-            // 2. Save your MP4 recordings and failure screenshots/text files
-            archiveArtifacts artifacts: '**/*.mp4, failures/*.png, failures/*.txt', allowEmptyArchive: true
+            // Clean up: Archive artifacts and gather reports
+            junit "${SCRIPT_DIR}/results_*.xml"
+            archiveArtifacts artifacts: "${SCRIPT_DIR}/**/*.mp4, ${SCRIPT_DIR}/failures/*.png, ${SCRIPT_DIR}/failures/*.txt", allowEmptyArchive: true
             
-            // 3. Clean up the heavy video files to save VPS disk space after archiving
-            sh 'rm -f **/*.mp4'
+            // Housekeeping: remove heavy video/report files to keep VPS disk clean
+            sh "rm -f ${SCRIPT_DIR}/results_*.xml ${SCRIPT_DIR}/**/*.mp4"
         }
     }
+}
+
+// Reusable function to handle the test execution logic
+def runTest(brand, device) {
+    def upc = (brand == 'bell') ? 'true' : 'false'
+    
+    sh """
+        cd ${SCRIPT_DIR}
+        
+        # Ensure virtual environment exists
+        [ -d venv ] || python3 -m venv venv
+        . venv/bin/activate
+        
+        # Install dependencies
+        pip install -r requirements.txt
+        
+        # Execute tests using headless virtual display
+        # Note: --junitxml ensures each run has a unique file name to prevent overwriting
+        xvfb-run --auto-servernum python3 -m pytest tests/test_${brand}_byod.py \
+            --device ${device} \
+            --upc ${upc} \
+            -s -v \
+            --junitxml=results_${brand}_${device}.xml
+    """
 }
