@@ -78,7 +78,6 @@ pipeline {
                                     sh """
                                         . ${VENV_PATH}/bin/activate
                                         
-                                        // Critical fix: Tells Python where your root directory is
                                         export PYTHONPATH="\${WORKSPACE}"
                                         
                                         pytest ${testFile} \
